@@ -8,6 +8,8 @@ from .imports import *
 from pandas.api.types import is_string_dtype, is_numeric_dtype
 from sklearn_pandas import DataFrameMapper
 from sklearn.preprocessing import StandardScaler
+from sklearn.tree import export_graphviz
+import graphviz
 
 
 def add_datepart(df, fldname, drop=True, info=None):
@@ -325,3 +327,16 @@ def fix_missing(df, col, name, na_dict):
             df[name] = col.fillna(filler)
             na_dict[name] = filler
     return na_dict
+
+
+def draw_tree(t, df, size=10, ratio=0.6, precision=0):
+    """ Draws a representation of a random forest in IPython.
+    Parameters:
+    -----------
+    t: The tree you wish to draw
+    df: The data used to train the tree. This is used to get the names of the features.
+    """
+    s = export_graphviz(t, out_file=None, feature_names=df.columns, filled=True,
+                      special_characters=True, rotate=True, precision=precision)
+    IPython.display.display(graphviz.Source(re.sub('Tree {',
+       f'Tree {{ size={size}; ratio={ratio}', s)))
