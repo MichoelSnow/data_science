@@ -9,6 +9,7 @@ from pandas.api.types import is_string_dtype, is_numeric_dtype
 from sklearn_pandas import DataFrameMapper
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import export_graphviz
+from sklearn.ensemble import forest
 from IPython import display
 import IPython.display
 import graphviz
@@ -341,3 +342,16 @@ def draw_tree(t, df, size=10, ratio=0.6, precision=0):
     s = export_graphviz(t, out_file=None, feature_names=df.columns, filled=True,
                         special_characters=True, rotate=True, precision=precision)
     IPython.display.display(graphviz.Source(re.sub('Tree {', f'Tree {{ size={size}; ratio={ratio}', s)))
+
+
+def set_rf_samples(n):
+    """ Changes Scikit learn's random forests to give each tree a random sample of
+    n random rows.
+    """
+    forest._generate_sample_indices = (lambda rs, n_samples: forest.check_random_state(rs).randint(0, n_samples, n))
+
+def reset_rf_samples():
+    """ Undoes the changes produced by set_rf_samples.
+    """
+    forest._generate_sample_indices = (lambda rs, n_samples:
+                                       forest.check_random_state(rs).randint(0, n_samples, n_samples))
