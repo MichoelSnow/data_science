@@ -355,3 +355,10 @@ def reset_rf_samples():
     """
     forest._generate_sample_indices = (lambda rs, n_samples:
                                        forest.check_random_state(rs).randint(0, n_samples, n_samples))
+
+def parallel_trees(m, fn, n_jobs=8):
+    return list(ProcessPoolExecutor(n_jobs).map(fn, m.estimators_))
+
+def rf_feat_importance(m, df):
+    return pd.DataFrame({'cols':df.columns, 'imp':m.feature_importances_}
+                       ).sort_values('imp', ascending=False)
