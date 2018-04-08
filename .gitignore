@@ -76,5 +76,4 @@ target/
 .ipynb_checkpoints/
 
 # exclude data from source control by default
-/data/uncompressed/
-/data/interim/bulldozer
+/data/
