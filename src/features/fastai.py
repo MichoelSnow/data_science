@@ -130,7 +130,7 @@ def apply_cats(df, trn):
 
 
 def proc_df(df, y_fld=None, skip_flds=None, do_scale=False, na_dict=None,
-            preproc_fn=None, max_n_cat=None, subset=None, mapper=None):
+            preproc_fn=None, max_n_cat=None, subset=None, mapper=None, random_state=None):
     """ proc_df takes a data frame df and splits off the response variable, and
     changes the df into an entirely numeric dataframe.
     Parameters:
@@ -147,6 +147,7 @@ def proc_df(df, y_fld=None, skip_flds=None, do_scale=False, na_dict=None,
     subset: Takes a random subset of size subset from df.
     mapper: If do_scale is set as True, the mapper variable
         calculates the values used for scaling of variables during training time(mean and standard deviation).
+    random_state: Seed for the random number generator when taking a subset
     Returns:
     --------
     [x, y, nas, mapper(optional)]:
@@ -198,7 +199,7 @@ def proc_df(df, y_fld=None, skip_flds=None, do_scale=False, na_dict=None,
     if not skip_flds:
         skip_flds = []
     if subset:
-        df = df.sample(subset)
+        df = df.sample(subset, random_state=random_state)
     df = df.copy()
     if preproc_fn:
         preproc_fn(df)
