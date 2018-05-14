@@ -1,4 +1,4 @@
-import IPython, graphviz, sklearn_pandas, sklearn, warnings, re, scipy
+import IPython, graphviz, sklearn_pandas, sklearn, warnings, re, scipy, plotnine
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
