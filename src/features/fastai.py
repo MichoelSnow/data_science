@@ -13,6 +13,7 @@ from sklearn.ensemble import forest
 from IPython import display
 import IPython.display
 import graphviz
+from urllib.request import urlretrieve
 
 
 def add_datepart(df, fldname, drop=True, info=None):
@@ -351,15 +352,33 @@ def set_rf_samples(n):
     """
     forest._generate_sample_indices = (lambda rs, n_samples: forest.check_random_state(rs).randint(0, n_samples, n))
 
+
 def reset_rf_samples():
     """ Undoes the changes produced by set_rf_samples.
     """
     forest._generate_sample_indices = (lambda rs, n_samples:
                                        forest.check_random_state(rs).randint(0, n_samples, n_samples))
 
+
 def parallel_trees(m, fn, n_jobs=8):
     return list(ProcessPoolExecutor(n_jobs).map(fn, m.estimators_))
 
+
 def rf_feat_importance(m, df):
-    return pd.DataFrame({'cols':df.columns, 'imp':m.feature_importances_}
-                       ).sort_values('imp', ascending=False)
+    return pd.DataFrame({'cols': df.columns, 'imp': m.feature_importances_}).sort_values('imp', ascending=False)
+
+
+class TqdmUpTo(tqdm):
+    def update_to(self, b=1, bsize=1, tsize=None):
+        if tsize is not None:
+            self.total = tsize
+        self.update(b * bsize - self.n)
+
+
+def get_data(url, filename):
+    if not os.path.exists(filename):
+        dirname = os.path.dirname(filename)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        with TqdmUpTo(unit='B', unit_scale=True, miniters=1, desc=url.split('/')[-1]) as t:
+            urlretrieve(url, filename, reporthook=t.update_to)
