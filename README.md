@@ -1,54 +1,29 @@
-data_science
-==============================
+# Data Science
 
-A short description of the project.
 
-Project Organization
-------------
+This is a hodgepdoge of topics I find interesting, challenging, or just can never remember in data science.
 
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.testrun.org
+Almost everything is written as jupyter notebooks, in the notebooks directory.
+
+The loose notebooks are topics not big enough for their own directories, yet.  The two areas of focus so far are
+
+- [Random Forests](notebooks/random_forest)
+- [PyTorch](notebooks/pytorch)
+
+## Using the code
+
+In addition to the packages listed in the requirements file, the notebooks will reference code in different directories in the [src](src) folder. The simplest way to add that code to your python environment is to create a symbolic link from the folder to your site packages directory.
+
+For example to utilize the code in the data_sci directory in your conda environment
+
+- *nix
+```bash
+ln -s ~/git/data_science/src/data_sci /directory/to/env/site-packages
+```
+- Windows
+```
+mklink /d c:\git\data_science\src\data_sci e:\directory\to\env\site-packages
+```
 
 
 --------
