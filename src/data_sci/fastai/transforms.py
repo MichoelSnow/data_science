@@ -1,4 +1,4 @@
-from .imports import *
+from ..imports import *
 from .layer_optimizer import *
 from enum import IntEnum
 

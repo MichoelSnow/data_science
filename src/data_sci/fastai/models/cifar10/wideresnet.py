@@ -1,10 +1,6 @@
 # Cifar10 Wideresnet for Dawn Submission
 
-import math
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from ...layers import *
+from src.data_sci.fastai.layers import *
 
 def conv_2d(ni, nf, ks, stride): return nn.Conv2d(ni, nf, kernel_size=ks, stride=stride, padding=ks//2, bias=False)
 

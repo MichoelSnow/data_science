@@ -1,4 +1,4 @@
-from .imports import *
+from ..imports import *
 from .torch_imports import *
 
 def accuracy_np(preds, targs):
