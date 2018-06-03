@@ -3,14 +3,10 @@ Code lightly modified from the Fast AI library
 https://github.com/fastai/fastai
 """
 
-
-from .imports import *
-from .torch_imports import *
-from .transforms import *
-import torch, queue
+from src.data_sci.fastai.transforms import *
 from torch.utils.data.sampler import SequentialSampler, RandomSampler, BatchSampler
-from .core import *
-import collections,sys,traceback,threading
+from src.data_sci.fastai.core import *
+import collections
 
 string_classes = (str, bytes)
 
