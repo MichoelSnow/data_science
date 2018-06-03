@@ -1,5 +1,5 @@
 import IPython, graphviz, sklearn_pandas, sklearn, warnings, re, scipy, plotnine, math, os, pickle, gzip, cv2, PIL
-import collections
+import collections, string
 import threading
 import pandas as pd
 import numpy as np
