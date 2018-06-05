@@ -1220,8 +1220,10 @@ class ConvnetBuilder():
 
     def __init__(self, f, c, is_multi, is_reg, ps=None, xtra_fc=None, xtra_cut=0, custom_head=None, pretrained=True):
         self.f, self.c, self.is_multi, self.is_reg, self.xtra_cut = f, c, is_multi, is_reg, xtra_cut
-        if xtra_fc is None: xtra_fc = [512]
-        if ps is None: ps = [0.25] * len(xtra_fc) + [0.5]
+        if xtra_fc is None:
+            xtra_fc = [512]
+        if ps is None:
+            ps = [0.25] * len(xtra_fc) + [0.5]
         self.ps, self.xtra_fc = ps, xtra_fc
 
         if f in model_meta:
@@ -1231,11 +1233,13 @@ class ConvnetBuilder():
         cut -= xtra_cut
         layers = cut_model(f(pretrained), cut)
         self.nf = model_features[f] if f in model_features else (num_features(layers) * 2)
-        if not custom_head: layers += [AdaptiveConcatPool2d(), Flatten()]
+        if not custom_head:
+            layers += [AdaptiveConcatPool2d(), Flatten()]
         self.top_model = nn.Sequential(*layers)
 
         n_fc = len(self.xtra_fc) + 1
-        if not isinstance(self.ps, list): self.ps = [self.ps] * n_fc
+        if not isinstance(self.ps, list):
+            self.ps = [self.ps] * n_fc
 
         if custom_head:
             fc_layers = [custom_head]
@@ -1243,7 +1247,8 @@ class ConvnetBuilder():
             fc_layers = self.get_fc_layers()
         self.n_fc = len(fc_layers)
         self.fc_model = to_gpu(nn.Sequential(*fc_layers))
-        if not custom_head: apply_init(self.fc_model, kaiming_normal)
+        if not custom_head:
+            apply_init(self.fc_model, kaiming_normal)
         self.model = to_gpu(nn.Sequential(*(layers + fc_layers)))
 
     @property
@@ -1263,7 +1268,8 @@ class ConvnetBuilder():
         for i, nf in enumerate(self.xtra_fc):
             res += self.create_fc_layer(ni, nf, p=self.ps[i], actn=nn.ReLU())
             ni = nf
-        final_actn = nn.Sigmoid() if self.is_multi else nn.LogSoftmax()
+        # final_actn = nn.Sigmoid() if self.is_multi else nn.LogSoftmax()
+        final_actn = nn.Sigmoid() if self.is_multi else nn.LogSoftmax(dim=1)
         if self.is_reg: final_actn = None
         res += self.create_fc_layer(ni, self.c, p=self.ps[-1], actn=final_actn)
         return res
@@ -2012,9 +2018,11 @@ def predict_to_bcolz(m, gen, arr, workers=4):
 
 def predict_with_targs_(m, dl):
     m.eval()
-    if hasattr(m, 'reset'): m.reset()
+    if hasattr(m, 'reset'):
+        m.reset()
     res = []
-    for *x, y in iter(dl): res.append([get_prediction(m(*VV(x))), y])
+    for *x, y in iter(dl):
+        res.append([get_prediction(m(*VV(x))), y])
     return zip(*res)
 
 
@@ -2594,7 +2602,7 @@ def svd_orthonormal(w):
     if len(shape) < 2:
         raise RuntimeError("Only shapes of length 2 or more are supported.")
     flat_shape = (shape[0], np.prod(shape[1:]))
-    a = np.random.normal(0.0, 1.0, flat_shape)#w;
+    a = np.random.normal(0.0, 1.0, flat_shape)  # w;
     u, _, v = np.linalg.svd(a, full_matrices=False)
     q = u if u.shape == flat_shape else v
     q = q.reshape(shape)
@@ -2642,9 +2650,12 @@ def num_features(m):
 
 
 def cond_init(m, init_fn):
-    if not isinstance(m, (nn.BatchNorm1d,nn.BatchNorm2d,nn.BatchNorm3d)):
-        if hasattr(m, 'weight'): init_fn(m.weight)
-        if hasattr(m, 'bias') and hasattr(m.bias, 'data'): m.bias.data.fill_(0.)
+    if not isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
+        if hasattr(m, 'weight'):
+            init_fn(m.weight)
+        if hasattr(m, 'bias') and hasattr(m.bias, 'data'):
+            m.bias.data.fill_(0.)
+
 
 def apply_init(m, init_fn):
     m.apply(lambda x: cond_init(x, init_fn))
