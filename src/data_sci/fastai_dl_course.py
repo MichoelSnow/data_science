@@ -10,7 +10,7 @@ from enum import IntEnum
 from .fastai_models import resnext_50_32x4d, resnext_101_32x4d, resnext_101_64x4d, wrn_50_2f, InceptionResnetV2, \
     inceptionv4
 from collections import Iterable, OrderedDict
-from itertools import chain
+from itertools import chain, product
 from distutils.version import LooseVersion
 import matplotlib.pyplot as plt
 
@@ -1199,7 +1199,8 @@ class CircularLR_beta(LR_Updater):
 class BasicModel(object):
     def __init__(self, model, name='unnamed'): self.model, self.name = model, name
 
-    def get_layer_groups(self, do_fc=False): return children(self.model)
+    def get_layer_groups(self, do_fc=False):
+        return children(self.model)
 
 
 class ConvnetBuilder():
@@ -1257,9 +1258,11 @@ class ConvnetBuilder():
 
     def create_fc_layer(self, ni, nf, p, actn=None):
         res = [nn.BatchNorm1d(num_features=ni)]
-        if p: res.append(nn.Dropout(p=p))
+        if p:
+            res.append(nn.Dropout(p=p))
         res.append(nn.Linear(in_features=ni, out_features=nf))
-        if actn: res.append(actn)
+        if actn:
+            res.append(actn)
         return res
 
     def get_fc_layers(self):
@@ -1270,7 +1273,8 @@ class ConvnetBuilder():
             ni = nf
         # final_actn = nn.Sigmoid() if self.is_multi else nn.LogSoftmax()
         final_actn = nn.Sigmoid() if self.is_multi else nn.LogSoftmax(dim=1)
-        if self.is_reg: final_actn = None
+        if self.is_reg:
+            final_actn = None
         res += self.create_fc_layer(ni, self.c, p=self.ps[-1], actn=final_actn)
         return res
 
@@ -1279,7 +1283,8 @@ class ConvnetBuilder():
             return [self.fc_model]
         idxs = [self.lr_cut]
         c = children(self.top_model)
-        if len(c) == 3: c = children(c[0]) + c[1:]
+        if len(c) == 3:
+            c = children(c[0]) + c[1:]
         lgs = list(split_by_idxs(c, idxs))
         return lgs + [self.fc_model]
 
@@ -1299,12 +1304,14 @@ class ConvLearner(Learner):
         super().__init__(data, models, **kwargs)
         if hasattr(data, 'is_multi') and not data.is_reg and self.metrics is None:
             self.metrics = [accuracy_thresh(0.5)] if self.data.is_multi else [accuracy]
-        if precompute: self.save_fc1()
+        if precompute:
+            self.save_fc1()
         self.freeze()
         self.precompute = precompute
 
     def _get_crit(self, data):
-        if not hasattr(data, 'is_multi'): return super()._get_crit(data)
+        if not hasattr(data, 'is_multi'):
+            return super()._get_crit(data)
 
         return F.l1_loss if data.is_reg else F.binary_cross_entropy if data.is_multi else F.nll_loss
 
@@ -1374,7 +1381,8 @@ class ConvLearner(Learner):
         if len(self.activations[1]) != len(self.data.val_ds):
             predict_to_bcolz(m, self.data.val_dl, val_act)
         if self.data.test_dl and (len(self.activations[2]) != len(self.data.test_ds)):
-            if self.data.test_dl: predict_to_bcolz(m, self.data.test_dl, test_act)
+            if self.data.test_dl:
+                predict_to_bcolz(m, self.data.test_dl, test_act)
 
         self.fc_data = ImageClassifierData.from_arrays(self.data.path,
                                                        (act, self.data.trn_y), (val_act, self.data.val_y), self.data.bs,
@@ -1475,7 +1483,8 @@ class CosAnneal(LR_Updater):
         if self.cycle_iter == self.nb:
             self.cycle_iter = 0
             self.nb *= self.cycle_mult
-            if self.on_cycle_end: self.on_cycle_end(self, self.cycle_count)
+            if self.on_cycle_end:
+                self.on_cycle_end(self, self.cycle_count)
             self.cycle_count += 1
         return init_lrs / 2 * cos_out
 
@@ -1504,7 +1513,8 @@ class LR_Finder(LR_Updater):
         loss = metrics[0] if isinstance(metrics, list) else metrics
         if self.stop_dv and (math.isnan(loss) or loss > self.best * 4):
             return True
-        if (loss < self.best and self.iteration > 10): self.best = loss
+        if (loss < self.best and self.iteration > 10):
+            self.best = loss
         return super().on_batch_end(metrics)
 
     def plot(self, n_skip=10, n_skip_end=5):
@@ -1535,10 +1545,12 @@ class LR_Finder2(LR_Finder):
         return super().on_batch_end(loss)
 
     def plot(self, n_skip=10, n_skip_end=5, smoothed=True):
-        if self.metrics is None: self.metrics = []
+        if self.metrics is None:
+            self.metrics = []
         n_plots = len(self.metrics) + 2
         fig, axs = plt.subplots(n_plots, figsize=(6, 4 * n_plots))
-        for i in range(0, n_plots): axs[i].set_xlabel('learning rate')
+        for i in range(0, n_plots):
+            axs[i].set_xlabel('learning rate')
         axs[0].set_ylabel('training loss')
         axs[1].set_ylabel('validation loss')
         for i, m in enumerate(self.metrics):
@@ -1547,7 +1559,8 @@ class LR_Finder2(LR_Finder):
                 values = self.rec_metrics
             else:
                 values = [rec[i] for rec in self.rec_metrics]
-            if smoothed: values = smooth_curve(values, 0.98)
+            if smoothed:
+                alues = smooth_curve(values, 0.98)
             axs[i + 2].plot(self.lrs[n_skip:-n_skip_end], values[n_skip:-n_skip_end])
         plt_val_l = smooth_curve(self.val_losses, 0.98) if smoothed else self.val_losses
         axs[0].plot(self.lrs[n_skip:-n_skip_end], self.losses[n_skip:-n_skip_end])
@@ -1573,7 +1586,8 @@ class OptimScheduler(LossRecorder):
         loss = metrics[0] if isinstance(metrics, list) else metrics
         if self.stop_div and (math.isnan(loss) or loss > self.best * 4):
             return True
-        if (loss < self.best and self.iteration > 10): self.best = loss
+        if (loss < self.best and self.iteration > 10):
+            self.best = loss
         super().on_batch_end(metrics)
         self.phases[self.phase].update()
 
@@ -1592,8 +1606,10 @@ class OptimScheduler(LossRecorder):
             plt.switch_backend('agg')
         np_plts = 2 if show_moms else 1
         fig, axs = plt.subplots(1, np_plts, figsize=(6 * np_plts, 4))
-        if not show_moms: axs = [axs]
-        for i in range(np_plts): axs[i].set_xlabel('iterations')
+        if not show_moms:
+            axs = [axs]
+        for i in range(np_plts):
+            axs[i].set_xlabel('iterations')
         axs[0].set_ylabel('learning rate')
         axs[0].plot(self.iterations, self.lrs)
         if show_moms:
@@ -1602,8 +1618,10 @@ class OptimScheduler(LossRecorder):
         if show_text:
             for i, phase in enumerate(self.phases):
                 text = phase.opt_fn.__name__
-                if phase.wds is not None: text += '\nwds=' + str(phase.wds)
-                if phase.beta is not None: text += '\nbeta=' + str(phase.beta)
+                if phase.wds is not None:
+                    text += '\nwds=' + str(phase.wds)
+                if phase.beta is not None:
+                    text += '\nbeta=' + str(phase.beta)
                 for k in range(np_plts):
                     if i < len(self.phases) - 1:
                         draw_line(axs[k], phase_limits[i + 1])
@@ -1612,7 +1630,8 @@ class OptimScheduler(LossRecorder):
             plt.savefig(os.path.join(self.save_path, 'lr_plot.png'))
 
     def plot(self, n_skip=10, n_skip_end=5, linear=None):
-        if linear is None: linear = self.phases[-1].lr_decay == DecayType.LINEAR
+        if linear is None:
+            linear = self.phases[-1].lr_decay == DecayType.LINEAR
         plt.ylabel("loss")
         plt.plot(self.lrs[n_skip:-n_skip_end], self.losses[n_skip:-n_skip_end])
         if linear:
@@ -1665,12 +1684,18 @@ class SWA(Callback):
 
 class LayerOptimizer():
     def __init__(self, opt_fn, layer_groups, lrs, wds=None):
-        if not isinstance(layer_groups, (list, tuple)): layer_groups = [layer_groups]
-        if not isinstance(lrs, Iterable): lrs = [lrs]
-        if len(lrs) == 1: lrs = lrs * len(layer_groups)
-        if wds is None: wds = 0.
-        if not isinstance(wds, Iterable): wds = [wds]
-        if len(wds) == 1: wds = wds * len(layer_groups)
+        if not isinstance(layer_groups, (list, tuple)):
+            layer_groups = [layer_groups]
+        if not isinstance(lrs, Iterable):
+            lrs = [lrs]
+        if len(lrs) == 1:
+            lrs = lrs * len(layer_groups)
+        if wds is None:
+            wds = 0.
+        if not isinstance(wds, Iterable):
+            wds = [wds]
+        if len(wds) == 1:
+            wds = wds * len(layer_groups)
         self.layer_groups, self.lrs, self.wds = layer_groups, lrs, wds
         self.opt = opt_fn(self.opt_params())
 
@@ -1692,28 +1717,36 @@ class LayerOptimizer():
             return self.opt.param_groups[0]['momentum']
 
     def set_lrs(self, lrs):
-        if not isinstance(lrs, Iterable): lrs = [lrs]
-        if len(lrs) == 1: lrs = lrs * len(self.layer_groups)
+        if not isinstance(lrs, Iterable):
+            lrs = [lrs]
+        if len(lrs) == 1:
+            lrs = lrs * len(self.layer_groups)
         set_lrs(self.opt, lrs)
         self.lrs = lrs
 
     def set_wds(self, wds):
-        if not isinstance(wds, Iterable): wds = [wds]
-        if len(wds) == 1: wds = wds * len(self.layer_groups)
+        if not isinstance(wds, Iterable):
+            wds = [wds]
+        if len(wds) == 1:
+            wds = wds * len(self.layer_groups)
         set_wds(self.opt, wds)
         self.wds = wds
 
     def set_mom(self, momentum):
         if 'betas' in self.opt.param_groups[0]:
-            for pg in self.opt.param_groups: pg['betas'] = (momentum, pg['betas'][1])
+            for pg in self.opt.param_groups:
+                pg['betas'] = (momentum, pg['betas'][1])
         else:
-            for pg in self.opt.param_groups: pg['momentum'] = momentum
+            for pg in self.opt.param_groups:
+                pg['momentum'] = momentum
 
     def set_beta(self, beta):
         if 'betas' in self.opt.param_groups[0]:
-            for pg in self.opt.param_groups: pg['betas'] = (pg['betas'][0], beta)
+            for pg in self.opt.param_groups:
+                pg['betas'] = (pg['betas'][0], beta)
         elif 'alpha' in self.opt.param_groups[0]:
-            for pg in self.opt.param_groups: pg['alpha'] = beta
+            for pg in self.opt.param_groups:
+                pg['alpha'] = beta
 
     def set_opt_fn(self, opt_fn):
         if type(self.opt) != type(opt_fn(self.opt_params())):
@@ -1727,19 +1760,24 @@ class AdaptiveConcatPool2d(nn.Module):
         self.ap = nn.AdaptiveAvgPool2d(sz)
         self.mp = nn.AdaptiveMaxPool2d(sz)
 
-    def forward(self, x): return torch.cat([self.mp(x), self.ap(x)], 1)
+    def forward(self, x):
+        return torch.cat([self.mp(x), self.ap(x)], 1)
 
 
 class Lambda(nn.Module):
-    def __init__(self, f): super().__init__(); self.f = f
+    def __init__(self, f):
+        super().__init__(); self.f = f
 
-    def forward(self, x): return self.f(x)
+    def forward(self, x):
+        return self.f(x)
 
 
 class Flatten(nn.Module):
-    def __init__(self): super().__init__()
+    def __init__(self):
+        super().__init__()
 
-    def forward(self, x): return x.view(x.size(0), -1)
+    def forward(self, x):
+        return x.view(x.size(0), -1)
 
 
 class DecayType(IntEnum):
@@ -1751,12 +1789,13 @@ class DecayType(IntEnum):
     POLYNOMIAL = 5
 
 
-class Stepper():
+class Stepper(object):
     def __init__(self, m, opt, crit, clip=0, reg_fn=None, fp16=False, loss_scale=1):
         self.m, self.opt, self.crit, self.clip, self.reg_fn = m, opt, crit, clip, reg_fn
         self.fp16 = fp16
         self.reset(True)
-        if self.fp16: self.fp32_params = copy_model_to_fp32(m, opt)
+        if self.fp16:
+            self.fp32_params = copy_model_to_fp32(m, opt)
         self.loss_scale = loss_scale
 
     def reset(self, train=True):
@@ -1766,23 +1805,29 @@ class Stepper():
             self.m.eval()
         if hasattr(self.m, 'reset'):
             self.m.reset()
-            if self.fp16: self.fp32_params = copy_model_to_fp32(self.m, self.opt)
+            if self.fp16:
+                self.fp32_params = copy_model_to_fp32(self.m, self.opt)
 
     def step(self, xs, y, epoch):
         xtra = []
         output = self.m(*xs)
-        if isinstance(output, tuple): output, *xtra = output
+        if isinstance(output, tuple):
+            output, *xtra = output
         if self.fp16:
             self.m.zero_grad()
         else:
             self.opt.zero_grad()
         loss = raw_loss = self.crit(output, y)
-        if self.loss_scale != 1: assert (self.fp16); loss = loss * self.loss_scale
-        if self.reg_fn: loss = self.reg_fn(output, xtra, raw_loss)
-        loss.backward()
-        if self.fp16: update_fp32_grads(self.fp32_params, self.m)
         if self.loss_scale != 1:
-            for param in self.fp32_params: param.grad.data.div_(self.loss_scale)
+            assert (self.fp16); loss = loss * self.loss_scale
+        if self.reg_fn:
+            loss = self.reg_fn(output, xtra, raw_loss)
+        loss.backward()
+        if self.fp16:
+            update_fp32_grads(self.fp32_params, self.m)
+        if self.loss_scale != 1:
+            for param in self.fp32_params:
+                param.grad.data.div_(self.loss_scale)
         if self.clip:  # Gradient clipping
             if IS_TORCH_04:
                 nn.utils.clip_grad_norm_(trainable_params_(self.m), self.clip)
@@ -1796,17 +1841,19 @@ class Stepper():
 
     def evaluate(self, xs, y):
         preds = self.m(*xs)
-        if isinstance(preds, tuple): preds = preds[0]
+        if isinstance(preds, tuple):
+            preds = preds[0]
         return preds, self.crit(preds, y)
 
 
-class IterBatch():
+class IterBatch(object):
     def __init__(self, dl):
         self.idx = 0
         self.dl = dl
         self.iter = iter(dl)
 
-    def __iter__(self): return self
+    def __iter__(self):
+        return self
 
     def next(self):
         res = next(self.iter)
@@ -1817,7 +1864,8 @@ class IterBatch():
         return res
 
 
-def torch_item(x): return x.item() if hasattr(x, 'item') else x[0]
+def torch_item(x):
+    return x.item() if hasattr(x, 'item') else x[0]
 
 
 def set_train_mode(m):
@@ -1836,16 +1884,22 @@ def opt_params(parm, lr, wd):
 
 
 def set_lrs(opt, lrs):
-    if not isinstance(lrs, Iterable): lrs = [lrs]
-    if len(lrs) == 1: lrs = lrs * len(opt.param_groups)
-    for pg, lr in zip_strict_(opt.param_groups, lrs): pg['lr'] = lr
+    if not isinstance(lrs, Iterable):
+        lrs = [lrs]
+    if len(lrs) == 1:
+        lrs = lrs * len(opt.param_groups)
+    for pg, lr in zip_strict_(opt.param_groups, lrs):
+        pg['lr'] = lr
 
 
 def set_wds(opt, wds):
-    if not isinstance(wds, Iterable): wds = [wds]
-    if len(wds) == 1: wds = wds * len(opt.param_groups)
+    if not isinstance(wds, Iterable):
+        wds = [wds]
+    if len(wds) == 1:
+        wds = wds * len(opt.param_groups)
     assert (len(opt.param_groups) == len(wds))
-    for pg, wd in zip_strict_(opt.param_groups, wds): pg['weight_decay'] = wd
+    for pg, wd in zip_strict_(opt.param_groups, wds):
+        pg['weight_decay'] = wd
 
 
 def zip_strict_(l, r):
@@ -1884,7 +1938,8 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
     callbacks = callbacks or []
     avg_mom = 0.98
     batch_num, avg_loss = 0, 0.
-    for cb in callbacks: cb.on_train_begin()
+    for cb in callbacks:
+        cb.on_train_begin()
     names = ["epoch", "trn_loss", "val_loss"] + [f.__name__ for f in metrics]
     if swa_model is not None:
         swa_names = ['swa_loss'] + [f'swa_{f.__name__}' for f in metrics]
@@ -1893,10 +1948,14 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
         swa_stepper = stepper(swa_model, None, crit, **kwargs)
 
     layout = "{!s:10} " * len(names)
-    if not isinstance(n_epochs, Iterable): n_epochs = [n_epochs]
-    if not isinstance(data, Iterable): data = [data]
-    if len(data) == 1: data = data * len(n_epochs)
-    for cb in callbacks: cb.on_phase_begin()
+    if not isinstance(n_epochs, Iterable):
+        n_epochs = [n_epochs]
+    if not isinstance(data, Iterable):
+        data = [data]
+    if len(data) == 1:
+        data = data * len(n_epochs)
+    for cb in callbacks:
+        cb.on_phase_begin()
     model_stepper = stepper(model, opt.opt if hasattr(opt, 'opt') else opt, crit, **kwargs)
     ep_vals = collections.OrderedDict()
     tot_epochs = int(np.ceil(np.array(n_epochs).sum()))
@@ -1905,31 +1964,40 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
     for epoch in tnrange(tot_epochs, desc='Epoch'):
         model_stepper.reset(True)
         cur_data = data[phase]
-        if hasattr(cur_data, 'trn_sampler'): cur_data.trn_sampler.set_epoch(epoch)
-        if hasattr(cur_data, 'val_sampler'): cur_data.val_sampler.set_epoch(epoch)
+        if hasattr(cur_data, 'trn_sampler'):
+            cur_data.trn_sampler.set_epoch(epoch)
+        if hasattr(cur_data, 'val_sampler'):
+            cur_data.val_sampler.set_epoch(epoch)
         num_batch = len(cur_data.trn_dl)
         t = tqdm(iter(cur_data.trn_dl), leave=False, total=num_batch)
-        if all_val: val_iter = IterBatch(cur_data.val_dl)
+        if all_val:
+            val_iter = IterBatch(cur_data.val_dl)
 
         for (*x, y) in t:
             batch_num += 1
-            for cb in callbacks: cb.on_batch_begin()
+            for cb in callbacks:
+                cb.on_batch_begin()
             loss = model_stepper.step(V(x), V(y), epoch)
             avg_loss = avg_loss * avg_mom + loss * (1 - avg_mom)
             debias_loss = avg_loss / (1 - avg_mom ** batch_num)
             t.set_postfix(loss=debias_loss)
             stop = False
             los = debias_loss if not all_val else [debias_loss] + validate_next(model_stepper, metrics, val_iter)
-            for cb in callbacks: stop = stop or cb.on_batch_end(los)
-            if stop: return
+            for cb in callbacks:
+                stop = stop or cb.on_batch_end(los)
+            if stop:
+                return
             if batch_num >= cnt_phases[phase]:
-                for cb in callbacks: cb.on_phase_end()
+                for cb in callbacks:
+                    cb.on_phase_end()
                 phase += 1
                 if phase >= len(n_epochs):
                     t.close()
                     break
-                for cb in callbacks: cb.on_phase_begin()
-                if isinstance(opt, LayerOptimizer): model_stepper.opt = opt.opt
+                for cb in callbacks:
+                    cb.on_phase_begin()
+                if isinstance(opt, LayerOptimizer):
+                    model_stepper.opt = opt.opt
                 if cur_data != data[phase]:
                     t.close()
                     break
@@ -1937,7 +2005,8 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
         if not all_val:
             vals = validate(model_stepper, cur_data.val_dl, metrics)
             stop = False
-            for cb in callbacks: stop = stop or cb.on_epoch_end(vals)
+            for cb in callbacks:
+                stop = stop or cb.on_epoch_end(vals)
             if swa_model is not None:
                 if (epoch + 1) >= swa_start and (
                         (epoch + 1 - swa_start) % swa_eval_freq == 0 or epoch == tot_epochs - 1):
@@ -1945,11 +2014,14 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
                     swa_vals = validate(swa_stepper, cur_data.val_dl, metrics)
                     vals += swa_vals
 
-            if epoch == 0: print(layout.format(*names))
+            if epoch == 0:
+                print(layout.format(*names))
             print_stats(epoch, [debias_loss] + vals)
             ep_vals = append_stats(ep_vals, epoch, [debias_loss] + vals)
-        if stop: break
-    for cb in callbacks: cb.on_train_end()
+        if stop:
+            break
+    for cb in callbacks:
+        cb.on_train_end()
     if get_ep_vals:
         return vals, ep_vals
     else:
@@ -2001,7 +2073,8 @@ def predict(m, dl):
 
 def predict_batch(m, x):
     m.eval()
-    if hasattr(m, 'reset'): m.reset()
+    if hasattr(m, 'reset'):
+        m.reset()
     return m(VV(x))
 
 
@@ -2032,11 +2105,13 @@ def predict_with_targs(m, dl):
 
 
 def get_prediction(x):
-    if is_listy(x): x = x[0]
+    if is_listy(x):
+        x = x[0]
     return x.data
 
 
-def no_grad_context(): return torch.no_grad() if IS_TORCH_04 else contextlib.suppress()
+def no_grad_context():
+    return torch.no_grad() if IS_TORCH_04 else contextlib.suppress()
 
 
 def collect_bn_modules(module, bn_modules):
@@ -2055,9 +2130,11 @@ def fix_batchnorm(swa_model, train_dl):
     to calculate an accurate running mean and variance for each batch norm layer.
     """
     bn_modules = []
-    swa_model.apply(lambda module: collect_bn_modules(module, bn_modules))
+    swa_model.apply(lambda module:
+                    collect_bn_modules(module, bn_modules))
 
-    if not bn_modules: return
+    if not bn_modules:
+        return
 
     swa_model.train()
 
@@ -2130,18 +2207,22 @@ def update_fp32_grads(fp32_params, m):
 
 def apply_leaf(m, f):
     c = children(m)
-    if isinstance(m, nn.Module): f(m)
+    if isinstance(m, nn.Module):
+        f(m)
     if len(c) > 0:
-        for l in c: apply_leaf(l, f)
+        for l in c:
+            apply_leaf(l, f)
 
 
 def set_trainable(l, b):
-    apply_leaf(l, lambda m: set_trainable_attr(m, b))
+    apply_leaf(l, lambda m:
+    set_trainable_attr(m, b))
 
 
 def set_trainable_attr(m, b):
     m.trainable = b
-    for p in m.parameters(): p.requires_grad = b
+    for p in m.parameters():
+        p.requires_grad = b
 
 
 def read_dirs(path, folder):
@@ -2434,10 +2515,12 @@ def VV(x):
     return map_over(x, VV_)
 
 
-def map_over(x, f): return [f(o) for o in x] if is_listy(x) else f(x)
+def map_over(x, f):
+    return [f(o) for o in x] if is_listy(x) else f(x)
 
 
-def map_none(x, f): return None if x is None else f(x)
+def map_none(x, f):
+    return None if x is None else f(x)
 
 
 def create_variable(x, volatile, requires_grad=False):
@@ -2499,7 +2582,8 @@ def model_summary(m, input_size):
         x = [to_gpu(Variable(torch.rand(3, *input_size)))]
     m(*x)
 
-    for h in hooks: h.remove()
+    for h in hooks:
+        h.remove()
     return summary
 
 
@@ -2642,11 +2726,14 @@ def cut_model(m, cut):
 
 def num_features(m):
     c = children(m)
-    if len(c) == 0: return None
+    if len(c) == 0:
+        return None
     for l in reversed(c):
-        if hasattr(l, 'num_features'): return l.num_features
+        if hasattr(l, 'num_features'):
+            return l.num_features
         res = num_features(l)
-        if res is not None: return res
+        if res is not None:
+            return res
 
 
 def cond_init(m, init_fn):
@@ -2681,6 +2768,320 @@ def smooth_curve(vals, beta):
     return smoothed
 
 
+def accuracy_np(preds, targs):
+    preds = np.argmax(preds, 1)
+    return (preds == targs).mean()
+
+
+def accuracy(preds, targs):
+    preds = torch.max(preds, dim=1)[1]
+    return (preds == targs).float().mean()
+
+
+def accuracy_thresh(thresh):
+    return lambda preds, targs: accuracy_multi(preds, targs, thresh)
+
+
+def accuracy_multi(preds, targs, thresh):
+    return ((preds > thresh).float() == targs).float().mean()
+
+
+def accuracy_multi_np(preds, targs, thresh):
+    return ((preds > thresh) == targs).mean()
+
+
+def recall(preds, targs, thresh=0.5):
+    pred_pos = preds > thresh
+    tpos = torch.mul((targs.byte() == pred_pos), targs.byte())
+    return tpos.sum() / targs.sum()
+
+
+def precision(preds, targs, thresh=0.5):
+    pred_pos = preds > thresh
+    tpos = torch.mul((targs.byte() == pred_pos), targs.byte())
+    return tpos.sum() / pred_pos.sum()
+
+
+def fbeta(preds, targs, beta, thresh=0.5):
+    """Calculates the F-beta score (the weighted harmonic mean of precision and recall).
+    This is the micro averaged version where the true positives, false negatives and
+    false positives are calculated globally (as opposed to on a per label basis).
+
+    beta == 1 places equal weight on precision and recall, b < 1 emphasizes precision and
+    beta > 1 favors recall.
+    """
+    assert beta > 0, 'beta needs to be greater than 0'
+    beta2 = beta ** 2
+    rec = recall(preds, targs, thresh)
+    prec = precision(preds, targs, thresh)
+    return (1 + beta2) * prec * rec / (beta2 * prec + rec)
+
+
+def f1(preds, targs, thresh=0.5):
+    return fbeta(preds, targs, 1, thresh)
+
+
+def partition(a, sz):
+    """splits iterables a in equal parts of size sz"""
+    return [a[i:i + sz] for i in range(0, len(a), sz)]
+
+
+def is_listy(x):
+    return isinstance(x, (list, tuple))
+
+
+def SGD_Momentum(momentum):
+    return lambda *args, **kwargs: optim.SGD(*args, momentum=momentum, **kwargs)
+
+
+def children(m):
+    return m if isinstance(m, (list, tuple)) else list(m.children())
+
+
+def save_model(m, p):
+    torch.save(m.state_dict(), p)
+
+
+def load_model(m, p):
+    m.load_state_dict(torch.load(p, map_location=lambda storage, loc: storage))
+
+
+def load_pre(pre, f, fn):
+    m = f()
+    path = os.path.dirname(__file__)
+    if pre:
+        load_model(m, f'{path}/weights/{fn}.pth')
+    return m
+
+
+def _fastai_model(name, paper_title, paper_href):
+    def add_docs_wrapper(f):
+        f.__doc__ = f"""{name} model from
+        `"{paper_title}" <{paper_href}>`_
+
+        Args:
+           pre (bool): If True, returns a model pre-trained on ImageNet
+        """
+        return f
+
+    return add_docs_wrapper
+
+
+@_fastai_model('Inception 4', 'Inception-v4, Inception-ResNet and the Impact of Residual Connections on Learning',
+               'https://arxiv.org/pdf/1602.07261.pdf')
+def inception_4(pre): return children(inceptionv4(pretrained=pre))[0]
+
+
+@_fastai_model('Inception 4', 'Inception-v4, Inception-ResNet and the Impact of Residual Connections on Learning',
+               'https://arxiv.org/pdf/1602.07261.pdf')
+def inceptionresnet_2(pre): return load_pre(pre, InceptionResnetV2, 'inceptionresnetv2-d579a627')
+
+
+@_fastai_model('ResNeXt 50', 'Aggregated Residual Transformations for Deep Neural Networks',
+               'https://arxiv.org/abs/1611.05431')
+def resnext50(pre): return load_pre(pre, resnext_50_32x4d, 'resnext_50_32x4d')
+
+
+@_fastai_model('ResNeXt 101_32', 'Aggregated Residual Transformations for Deep Neural Networks',
+               'https://arxiv.org/abs/1611.05431')
+def resnext101(pre): return load_pre(pre, resnext_101_32x4d, 'resnext_101_32x4d')
+
+
+@_fastai_model('ResNeXt 101_64', 'Aggregated Residual Transformations for Deep Neural Networks',
+               'https://arxiv.org/abs/1611.05431')
+def resnext101_64(pre): return load_pre(pre, resnext_101_64x4d, 'resnext_101_64x4d')
+
+
+@_fastai_model('Wide Residual Networks', 'Wide Residual Networks',
+               'https://arxiv.org/pdf/1605.07146.pdf')
+def wrn(pre): return load_pre(pre, wrn_50_2f, 'wrn_50_2f')
+
+
+@_fastai_model('Densenet-121', 'Densely Connected Convolutional Networks',
+               'https://arxiv.org/pdf/1608.06993.pdf')
+def dn121(pre): return children(densenet121(pre))[0]
+
+
+@_fastai_model('Densenet-169', 'Densely Connected Convolutional Networks',
+               'https://arxiv.org/pdf/1608.06993.pdf')
+def dn161(pre): return children(densenet161(pre))[0]
+
+
+@_fastai_model('Densenet-161', 'Densely Connected Convolutional Networks',
+               'https://arxiv.org/pdf/1608.06993.pdf')
+def dn169(pre): return children(densenet169(pre))[0]
+
+
+@_fastai_model('Densenet-201', 'Densely Connected Convolutional Networks',
+               'https://arxiv.org/pdf/1608.06993.pdf')
+def dn201(pre): return children(densenet201(pre))[0]
+
+
+@_fastai_model('Vgg-16 with batch norm added', 'Very Deep Convolutional Networks for Large-Scale Image Recognition',
+               'https://arxiv.org/pdf/1409.1556.pdf')
+def vgg16(pre): return children(vgg16_bn(pre))[0]
+
+
+@_fastai_model('Vgg-19 with batch norm added', 'Very Deep Convolutional Networks for Large-Scale Image Recognition',
+               'https://arxiv.org/pdf/1409.1556.pdf')
+def vgg19(pre): return children(vgg19_bn(pre))[0]
+
+
+#####################################################################
+#####################################################################
+#####################################################################
+## TRANSFORMS
+
+
+def scale_min(im, targ, interpolation=cv2.INTER_AREA):
+    """ Scales the image so that the smallest axis is of size targ.
+
+    Arguments:
+        im (array): image
+        targ (int): target size
+        interpolation:
+    """
+    r, c, *_ = im.shape
+    ratio = targ / min(r, c)
+    sz = (scale_to(c, ratio, targ), scale_to(r, ratio, targ))
+    return cv2.resize(im, sz, interpolation=interpolation)
+
+
+def zoom_cv(x, z):
+    '''zooms the center of image x, by a factor of z+1 while retaining the origal image size and proportion. '''
+    if z == 0:
+        return x
+    r, c, *_ = x.shape
+    M = cv2.getRotationMatrix2D((c / 2, r / 2), 0, z + 1.)
+    return cv2.warpAffine(x, M, (c, r))
+
+
+def stretch_cv(x, sr, sc, interpolation=cv2.INTER_AREA):
+    '''stretches image x horizontally by sr+1, and vertically by sc+1 while retaining the origal image size and proportion.'''
+    if sr == 0 and sc == 0:
+        return x
+    r, c, *_ = x.shape
+    x = cv2.resize(x, None, fx=sr + 1, fy=sc + 1, interpolation=interpolation)
+    nr, nc, *_ = x.shape
+    cr = (nr - r) // 2;
+    cc = (nc - c) // 2
+    return x[cr:r + cr, cc:c + cc]
+
+
+def dihedral(x, dih):
+    '''performs any of 8 90 rotations or flips for image x.
+    '''
+    x = np.rot90(x, dih % 4)
+    return x if dih < 4 else np.fliplr(x)
+
+
+def lighting(im, b, c):
+    ''' adjusts image's balance and contrast'''
+    if b == 0 and c == 1:
+        return im
+    mu = np.average(im)
+    return np.clip((im - mu) * c + mu + b, 0., 1.).astype(np.float32)
+
+
+def rotate_cv(im, deg, mode=cv2.BORDER_CONSTANT, interpolation=cv2.INTER_AREA):
+    """ Rotates an image by deg degrees
+
+    Arguments:
+        deg (float): degree to rotate.
+    """
+    r, c, *_ = im.shape
+    M = cv2.getRotationMatrix2D((c // 2, r // 2), deg, 1)
+    return cv2.warpAffine(im, M, (c, r), borderMode=mode, flags=cv2.WARP_FILL_OUTLIERS + interpolation)
+
+
+def compose(im, y, fns):
+    """ apply a collection of transformation functions fns to images
+    """
+    for fn in fns:
+        # pdb.set_trace()
+        im, y = fn(im, y)
+    return im if y is None else (im, y)
+
+
+def crop(im, r, c, sz):
+    """ crop image into a square of size sz, """
+    return im[r:r + sz, c:c + sz]
+
+
+def center_crop(im, min_sz=None):
+    """ Returns a center crop of an image"""
+    r, c, *_ = im.shape
+    if min_sz is None:
+        min_sz = min(r, c)
+    start_r = math.ceil((r - min_sz) / 2)
+    start_c = math.ceil((c - min_sz) / 2)
+    return crop(im, start_r, start_c, min_sz)
+
+
+def no_crop(im, min_sz=None, interpolation=cv2.INTER_AREA):
+    """ Returns a squared resized image """
+    r, c, *_ = im.shape
+    if min_sz is None:
+        min_sz = min(r, c)
+    return cv2.resize(im, (min_sz, min_sz), interpolation=interpolation)
+
+
+def googlenet_resize(im, targ, min_area_frac, min_aspect_ratio, max_aspect_ratio, flip_hw_p,
+                     interpolation=cv2.INTER_AREA):
+    """ Randomly crops an image with an aspect ratio and returns a squared resized image of size targ
+
+    References:
+    1. https://arxiv.org/pdf/1409.4842.pdf
+    2. https://arxiv.org/pdf/1802.07888.pdf
+    """
+    h, w, *_ = im.shape
+    area = h * w
+    for _ in range(10):
+        targetArea = random.uniform(min_area_frac, 1.0) * area
+        aspectR = random.uniform(min_aspect_ratio, max_aspect_ratio)
+        ww = int(np.sqrt(targetArea * aspectR) + 0.5)
+        hh = int(np.sqrt(targetArea / aspectR) + 0.5)
+        if flip_hw_p:
+            ww, hh = hh, ww
+        if hh <= h and ww <= w:
+            x1 = 0 if w == ww else random.randint(0, w - ww)
+            y1 = 0 if h == hh else random.randint(0, h - hh)
+            out = im[y1:y1 + hh, x1:x1 + ww]
+            out = cv2.resize(out, (targ, targ), interpolation=interpolation)
+            return out
+    out = scale_min(im, targ, interpolation=interpolation)
+    out = center_crop(out)
+    return out
+
+
+def cutout(im, n_holes, length):
+    ''' cuts out n_holes number of square holes of size length in image at random locations. holes may be overlapping. '''
+    r, c, *_ = im.shape
+    mask = np.ones((r, c), np.int32)
+    for n in range(n_holes):
+        y = np.random.randint(length / 2, r - length / 2)
+        x = np.random.randint(length / 2, c - length / 2)
+
+        y1 = int(np.clip(y - length / 2, 0, r))
+        y2 = int(np.clip(y + length / 2, 0, r))
+        x1 = int(np.clip(x - length / 2, 0, c))
+        x2 = int(np.clip(x + length / 2, 0, c))
+        mask[y1: y2, x1: x2] = 0.
+
+    mask = mask[:, :, None]
+    im = im * mask
+    return im
+
+
+def scale_to(x, ratio, targ):
+    '''Calculate dimension of an image during scaling with aspect ratio'''
+    return max(math.floor(x * ratio), targ)
+
+
+def rand0(s):
+    return random.random() * (s * 2) - s
+
+
 class TfmType(IntEnum):
     """ Type of transformation.
     Parameters
@@ -2705,7 +3106,8 @@ class Denormalize(object):
         self.m = np.array(m, dtype=np.float32)
         self.s = np.array(s, dtype=np.float32)
 
-    def __call__(self, x): return x * self.s + self.m
+    def __call__(self, x):
+        return x * self.s + self.m
 
 
 class Normalize(object):
@@ -2749,7 +3151,8 @@ class Transform(object):
         self.tfm_y = tfm_y
         self.store = threading.local()
 
-    def set_state(self): pass
+    def set_state(self):
+        pass
 
     def __call__(self, x, y):
         self.set_state()
@@ -2826,6 +3229,80 @@ class RandomScale(CoordTransform):
                              cv2.INTER_AREA if self.tfm_y == TfmType.PIXEL else cv2.INTER_NEAREST)
         else:
             return scale_min(x, self.store.new_sz, cv2.INTER_AREA)
+
+
+class RandomRotate(CoordTransform):
+    """ Rotates images and (optionally) target y.
+
+    Rotating coordinates is treated differently for x and y on this
+    transform.
+     Arguments:
+        deg (float): degree to rotate.
+        p (float): probability of rotation
+        mode: type of border
+        tfm_y (TfmType): type of y transform
+    """
+
+    def __init__(self, deg, p=0.75, mode=cv2.BORDER_REFLECT, tfm_y=TfmType.NO):
+        super().__init__(tfm_y)
+        self.deg, self.p = deg, p
+        if tfm_y == TfmType.COORD or tfm_y == TfmType.CLASS:
+            self.modes = (mode, cv2.BORDER_CONSTANT)
+        else:
+            self.modes = (mode, mode)
+
+    def set_state(self):
+        self.store.rdeg = rand0(self.deg)
+        self.store.rp = random.random() < self.p
+
+    def do_transform(self, x, is_y):
+        if self.store.rp: x = rotate_cv(x, self.store.rdeg,
+                                        mode=self.modes[1] if is_y else self.modes[0],
+                                        interpolation=cv2.INTER_NEAREST if is_y else cv2.INTER_AREA)
+        return x
+
+
+class RandomDihedral(CoordTransform):
+    """
+    Rotates images by random multiples of 90 degrees and/or reflection.
+    Please reference D8(dihedral group of order eight), the group of all symmetries of the square.
+    """
+
+    def set_state(self):
+        self.store.rot_times = random.randint(0, 3)
+        self.store.do_flip = random.random() < 0.5
+
+    def do_transform(self, x, is_y):
+        x = np.rot90(x, self.store.rot_times)
+        return np.fliplr(x).copy() if self.store.do_flip else x
+
+
+class RandomFlip(CoordTransform):
+    def __init__(self, tfm_y=TfmType.NO, p=0.5):
+        super().__init__(tfm_y=tfm_y)
+        self.p = p
+
+    def set_state(self): self.store.do_flip = random.random() < self.p
+
+    def do_transform(self, x, is_y): return np.fliplr(x).copy() if self.store.do_flip else x
+
+
+class RandomLighting(Transform):
+    def __init__(self, b, c, tfm_y=TfmType.NO):
+        super().__init__(tfm_y)
+        self.b, self.c = b, c
+
+    def set_state(self):
+        self.store.b_rand = rand0(self.b)
+        self.store.c_rand = rand0(self.c)
+
+    def do_transform(self, x, is_y):
+        if is_y and self.tfm_y != TfmType.PIXEL: return x
+        b = self.store.b_rand
+        c = self.store.c_rand
+        c = -1 / (c - 1) if c < 0 else c + 1
+        x = lighting(x, b, c)
+        return x
 
 
 class Scale(CoordTransform):
@@ -3021,58 +3498,6 @@ crop_fn_lu = {CropType.RANDOM: RandomCrop, CropType.CENTER: CenterCrop, CropType
               CropType.GOOGLENET: GoogleNetResize}
 
 
-def accuracy_np(preds, targs):
-    preds = np.argmax(preds, 1)
-    return (preds == targs).mean()
-
-
-def accuracy(preds, targs):
-    preds = torch.max(preds, dim=1)[1]
-    return (preds == targs).float().mean()
-
-
-def accuracy_thresh(thresh):
-    return lambda preds, targs: accuracy_multi(preds, targs, thresh)
-
-
-def accuracy_multi(preds, targs, thresh):
-    return ((preds > thresh).float() == targs).float().mean()
-
-
-def accuracy_multi_np(preds, targs, thresh):
-    return ((preds > thresh) == targs).mean()
-
-
-def recall(preds, targs, thresh=0.5):
-    pred_pos = preds > thresh
-    tpos = torch.mul((targs.byte() == pred_pos), targs.byte())
-    return tpos.sum() / targs.sum()
-
-
-def precision(preds, targs, thresh=0.5):
-    pred_pos = preds > thresh
-    tpos = torch.mul((targs.byte() == pred_pos), targs.byte())
-    return tpos.sum() / pred_pos.sum()
-
-
-def fbeta(preds, targs, beta, thresh=0.5):
-    """Calculates the F-beta score (the weighted harmonic mean of precision and recall).
-    This is the micro averaged version where the true positives, false negatives and
-    false positives are calculated globally (as opposed to on a per label basis).
-
-    beta == 1 places equal weight on precision and recall, b < 1 emphasizes precision and
-    beta > 1 favors recall.
-    """
-    assert beta > 0, 'beta needs to be greater than 0'
-    beta2 = beta ** 2
-    rec = recall(preds, targs, thresh)
-    prec = precision(preds, targs, thresh)
-    return (1 + beta2) * prec * rec / (beta2 * prec + rec)
-
-
-def f1(preds, targs, thresh=0.5): return fbeta(preds, targs, 1, thresh)
-
-
 def tfms_from_stats(stats, sz, aug_tfms=None, max_zoom=None, pad=0, crop_type=CropType.RANDOM,
                     tfm_y=None, sz_y=None, pad_mode=cv2.BORDER_REFLECT, norm_y=True, scale=None):
     """ Given the statistics of the training image sets, returns separate training and validation transform functions
@@ -3164,184 +3589,9 @@ def to_bb(YY):
     return np.array([left_col, top_row, right_col, bottom_row], dtype=np.float32)
 
 
-def partition(a, sz):
-    """splits iterables a in equal parts of size sz"""
-    return [a[i:i + sz] for i in range(0, len(a), sz)]
-
-
-def scale_min(im, targ, interpolation=cv2.INTER_AREA):
-    """ Scales the image so that the smallest axis is of size targ.
-
-    Arguments:
-        im (array): image
-        targ (int): target size
-        interpolation:
-    """
-    r, c, *_ = im.shape
-    ratio = targ / min(r, c)
-    sz = (scale_to(c, ratio, targ), scale_to(r, ratio, targ))
-    return cv2.resize(im, sz, interpolation=interpolation)
-
-
-def compose(im, y, fns):
-    """ apply a collection of transformation functions fns to images
-    """
-    for fn in fns:
-        # pdb.set_trace()
-        im, y = fn(im, y)
-    return im if y is None else (im, y)
-
-
-def crop(im, r, c, sz):
-    """ crop image into a square of size sz, """
-    return im[r:r + sz, c:c + sz]
-
-
-def center_crop(im, min_sz=None):
-    """ Returns a center crop of an image"""
-    r, c, *_ = im.shape
-    if min_sz is None:
-        min_sz = min(r, c)
-    start_r = math.ceil((r - min_sz) / 2)
-    start_c = math.ceil((c - min_sz) / 2)
-    return crop(im, start_r, start_c, min_sz)
-
-
-def no_crop(im, min_sz=None, interpolation=cv2.INTER_AREA):
-    """ Returns a squared resized image """
-    r, c, *_ = im.shape
-    if min_sz is None:
-        min_sz = min(r, c)
-    return cv2.resize(im, (min_sz, min_sz), interpolation=interpolation)
-
-
-def googlenet_resize(im, targ, min_area_frac, min_aspect_ratio, max_aspect_ratio, flip_hw_p,
-                     interpolation=cv2.INTER_AREA):
-    """ Randomly crops an image with an aspect ratio and returns a squared resized image of size targ
-
-    References:
-    1. https://arxiv.org/pdf/1409.4842.pdf
-    2. https://arxiv.org/pdf/1802.07888.pdf
-    """
-    h, w, *_ = im.shape
-    area = h * w
-    for _ in range(10):
-        targetArea = random.uniform(min_area_frac, 1.0) * area
-        aspectR = random.uniform(min_aspect_ratio, max_aspect_ratio)
-        ww = int(np.sqrt(targetArea * aspectR) + 0.5)
-        hh = int(np.sqrt(targetArea / aspectR) + 0.5)
-        if flip_hw_p:
-            ww, hh = hh, ww
-        if hh <= h and ww <= w:
-            x1 = 0 if w == ww else random.randint(0, w - ww)
-            y1 = 0 if h == hh else random.randint(0, h - hh)
-            out = im[y1:y1 + hh, x1:x1 + ww]
-            out = cv2.resize(out, (targ, targ), interpolation=interpolation)
-            return out
-    out = scale_min(im, targ, interpolation=interpolation)
-    out = center_crop(out)
-    return out
-
-
-def is_listy(x): return isinstance(x, (list, tuple))
-
-
-def SGD_Momentum(momentum):
-    return lambda *args, **kwargs: optim.SGD(*args, momentum=momentum, **kwargs)
-
-
-def children(m):
-    return m if isinstance(m, (list, tuple)) else list(m.children())
-
-
-def save_model(m, p):
-    torch.save(m.state_dict(), p)
-
-
-def load_model(m, p):
-    m.load_state_dict(torch.load(p, map_location=lambda storage, loc: storage))
-
-
-def load_pre(pre, f, fn):
-    m = f()
-    path = os.path.dirname(__file__)
-    if pre:
-        load_model(m, f'{path}/weights/{fn}.pth')
-    return m
-
-
-def _fastai_model(name, paper_title, paper_href):
-    def add_docs_wrapper(f):
-        f.__doc__ = f"""{name} model from
-        `"{paper_title}" <{paper_href}>`_
-
-        Args:
-           pre (bool): If True, returns a model pre-trained on ImageNet
-        """
-        return f
-
-    return add_docs_wrapper
-
-
-@_fastai_model('Inception 4', 'Inception-v4, Inception-ResNet and the Impact of Residual Connections on Learning',
-               'https://arxiv.org/pdf/1602.07261.pdf')
-def inception_4(pre): return children(inceptionv4(pretrained=pre))[0]
-
-
-@_fastai_model('Inception 4', 'Inception-v4, Inception-ResNet and the Impact of Residual Connections on Learning',
-               'https://arxiv.org/pdf/1602.07261.pdf')
-def inceptionresnet_2(pre): return load_pre(pre, InceptionResnetV2, 'inceptionresnetv2-d579a627')
-
-
-@_fastai_model('ResNeXt 50', 'Aggregated Residual Transformations for Deep Neural Networks',
-               'https://arxiv.org/abs/1611.05431')
-def resnext50(pre): return load_pre(pre, resnext_50_32x4d, 'resnext_50_32x4d')
-
-
-@_fastai_model('ResNeXt 101_32', 'Aggregated Residual Transformations for Deep Neural Networks',
-               'https://arxiv.org/abs/1611.05431')
-def resnext101(pre): return load_pre(pre, resnext_101_32x4d, 'resnext_101_32x4d')
-
-
-@_fastai_model('ResNeXt 101_64', 'Aggregated Residual Transformations for Deep Neural Networks',
-               'https://arxiv.org/abs/1611.05431')
-def resnext101_64(pre): return load_pre(pre, resnext_101_64x4d, 'resnext_101_64x4d')
-
-
-@_fastai_model('Wide Residual Networks', 'Wide Residual Networks',
-               'https://arxiv.org/pdf/1605.07146.pdf')
-def wrn(pre): return load_pre(pre, wrn_50_2f, 'wrn_50_2f')
-
-
-@_fastai_model('Densenet-121', 'Densely Connected Convolutional Networks',
-               'https://arxiv.org/pdf/1608.06993.pdf')
-def dn121(pre): return children(densenet121(pre))[0]
-
-
-@_fastai_model('Densenet-169', 'Densely Connected Convolutional Networks',
-               'https://arxiv.org/pdf/1608.06993.pdf')
-def dn161(pre): return children(densenet161(pre))[0]
-
-
-@_fastai_model('Densenet-161', 'Densely Connected Convolutional Networks',
-               'https://arxiv.org/pdf/1608.06993.pdf')
-def dn169(pre): return children(densenet169(pre))[0]
-
-
-@_fastai_model('Densenet-201', 'Densely Connected Convolutional Networks',
-               'https://arxiv.org/pdf/1608.06993.pdf')
-def dn201(pre): return children(densenet201(pre))[0]
-
-
-@_fastai_model('Vgg-16 with batch norm added', 'Very Deep Convolutional Networks for Large-Scale Image Recognition',
-               'https://arxiv.org/pdf/1409.1556.pdf')
-def vgg16(pre): return children(vgg16_bn(pre))[0]
-
-
-@_fastai_model('Vgg-19 with batch norm added', 'Very Deep Convolutional Networks for Large-Scale Image Recognition',
-               'https://arxiv.org/pdf/1409.1556.pdf')
-def vgg19(pre): return children(vgg19_bn(pre))[0]
-
+transforms_basic = [RandomRotate(10), RandomLighting(0.05, 0.05)]
+transforms_side_on = transforms_basic + [RandomFlip()]
+transforms_top_down = transforms_basic + [RandomDihedral()]
 
 imagenet_stats = A([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 """Statistics pertaining to image data from image net. mean and std of the images of each color channel"""
@@ -3355,3 +3605,87 @@ model_meta = {
     dn121: [0, 7], dn161: [0, 7], dn169: [0, 7], dn201: [0, 7],
 }
 model_features = {inception_4: 3072, dn121: 2048, dn161: 4416, }  # nasnetalarge: 4032*2}
+
+
+#################################
+#  PLOTS
+
+def ceildiv(a, b):
+    return -(-a // b)
+
+
+def plots(ims, figsize=(12, 6), rows=1, interp=False, titles=None, maintitle=None):
+    if type(ims[0]) is np.ndarray:
+        ims = np.array(ims)
+        if (ims.shape[-1] != 3):
+            ims = ims.transpose((0, 2, 3, 1))
+    f = plt.figure(figsize=figsize)
+    if maintitle is not None:
+        plt.suptitle(maintitle, fontsize=16)
+    for i in range(len(ims)):
+        sp = f.add_subplot(rows, ceildiv(len(ims), rows), i + 1)
+        sp.axis('Off')
+        if titles is not None:
+            sp.set_title(titles[i], fontsize=16)
+        plt.imshow(ims[i], interpolation=None if interp else 'none')
+
+
+def plots_from_files(imspaths, figsize=(10, 5), rows=1, titles=None, maintitle=None):
+    """Plots images given image files.
+
+    Arguments:
+        im_paths (list): list of paths
+        figsize (tuple): figure size
+        rows (int): number of rows
+        titles (list): list of titles
+        maintitle (string): main title
+    """
+    f = plt.figure(figsize=figsize)
+    if maintitle is not None:
+        plt.suptitle(maintitle, fontsize=16)
+    for i in range(len(imspaths)):
+        sp = f.add_subplot(rows, ceildiv(len(imspaths), rows), i + 1)
+        sp.axis('Off')
+        if titles is not None: sp.set_title(titles[i], fontsize=16)
+        img = plt.imread(imspaths[i])
+        plt.imshow(img)
+
+
+def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues, figsize=None):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    (This function is copied from the scikit docs.)
+    """
+    plt.figure(figsize=figsize)
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    print(cm)
+    thresh = cm.max() / 2.
+    for i, j in product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, cm[i, j], horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+
+def plots_raw(ims, figsize=(12, 6), rows=1, titles=None):
+    f = plt.figure(figsize=figsize)
+    for i in range(len(ims)):
+        sp = f.add_subplot(rows, ceildiv(len(ims), rows), i + 1)
+        sp.axis('Off')
+        if titles is not None:
+            sp.set_title(titles[i], fontsize=16)
+        plt.imshow(ims[i])
+
+
+def load_img_id(ds, idx, path):
+    return np.array(Image.open(os.path.join(path, ds.fnames[idx])))
