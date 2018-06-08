@@ -105,9 +105,9 @@ class ImageData(ModelData):
     @staticmethod
     def get_ds(fn, trn, val, tfms, test=None, **kwargs):
         res = [
-            fn(trn[0], trn[1], tfms[0], **kwargs),  # train
-            fn(val[0], val[1], tfms[1], **kwargs),  # val
-            fn(trn[0], trn[1], tfms[1], **kwargs),  # fix
+            fn(trn[0], trn[1], tfms[0], **kwargs), # train
+            fn(val[0], val[1], tfms[1], **kwargs), # val
+            fn(trn[0], trn[1], tfms[1], **kwargs), # fix
             fn(val[0], val[1], tfms[0], **kwargs)  # aug
         ]
         if test is not None:
@@ -115,13 +115,15 @@ class ImageData(ModelData):
                 test_lbls = test[1]
                 test = test[0]
             else:
-                test_lbls = np.zeros((len(test), trn[1].shape[1]))
+                if len(trn[1].shape) == 1:
+                    test_lbls = np.zeros((len(test),1))
+                else:
+                    test_lbls = np.zeros((len(test),trn[1].shape[1]))
             res += [
-                fn(test, test_lbls, tfms[1], **kwargs),  # test
+                fn(test, test_lbls, tfms[1], **kwargs), # test
                 fn(test, test_lbls, tfms[0], **kwargs)  # test_aug
             ]
-        else:
-            res += [None, None]
+        else: res += [None,None]
         return res
 
 
