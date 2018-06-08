@@ -1,3 +1,4 @@
+from .core import *
 from .learner import *
 from .lm_rnn import *
 from torch.utils.data.sampler import Sampler
@@ -139,8 +140,8 @@ class SortishSampler(Sampler):
         sort_idx = np.concatenate([sorted(s, key=self.key, reverse=True) for s in ck_idx])
         sz = self.bs
         ck_idx = [sort_idx[i:i+sz] for i in range(0, len(sort_idx), sz)]
-        max_ck = np.argmax([ck[0] for ck in ck_idx])  # find the chunk with the largest key,
-        ck_idx[0],ck_idx[max_ck] = ck_idx[max_ck],ck_idx[0]  # then make sure it goes first.
+        max_ck = np.argmax([self.key(ck[0]) for ck in ck_idx])  # find the chunk with the largest key,
+        ck_idx[0],ck_idx[max_ck] = ck_idx[max_ck],ck_idx[0]     # then make sure it goes first.
         sort_idx = np.concatenate(np.random.permutation(ck_idx[1:]))
         sort_idx = np.concatenate((ck_idx[0], sort_idx))
         return iter(sort_idx)
@@ -207,6 +208,7 @@ class RNN_Learner(Learner):
         super().__init__(data, models, **kwargs)
 
     def _get_crit(self, data): return F.cross_entropy
+    def fit(self, *args, **kwargs): return super().fit(*args, **kwargs, seq_first=True)
 
     def save_encoder(self, name): save_model(self.model[0], self.get_model_path(name))
     def load_encoder(self, name): load_model(self.model[0], self.get_model_path(name))

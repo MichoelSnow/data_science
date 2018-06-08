@@ -1,6 +1,6 @@
 import csv
 
-from ..imports import *
+from .imports import *
 from .torch_imports import *
 from .core import *
 from .transforms import *
@@ -127,8 +127,8 @@ def parse_csv_labels(fn, skip_header=True, cat_separator = ' '):
     return fnames, list(df.to_dict().values())[0]
 
 def nhot_labels(label2idx, csv_labels, fnames, c):
-    
-    all_idx = {k: n_hot([label2idx[o] for o in v], c)
+			    
+    all_idx = {k: n_hot([label2idx[o] for o in ([] if type(v) == float else v)], c)
                for k,v in csv_labels.items()}
     return np.stack([all_idx[o] for o in fnames])
 
@@ -137,7 +137,7 @@ def csv_source(folder, csv_file, skip_header=True, suffix='', continuous=False):
     return dict_source(folder, fnames, csv_labels, suffix, continuous)
 
 def dict_source(folder, fnames, csv_labels, suffix='', continuous=False):
-    all_labels = sorted(list(set(p for o in csv_labels.values() for p in o)))
+    all_labels = sorted(list(set(p for o in csv_labels.values() for p in ([] if type(o) == float else o))))
     full_names = [os.path.join(folder,str(fn)+suffix) for fn in fnames]
     if continuous:
         label_arr = np.array([np.array(csv_labels[i]).astype(np.float32)
@@ -150,7 +150,7 @@ def dict_source(folder, fnames, csv_labels, suffix='', continuous=False):
     return full_names, label_arr, all_labels
 
 class BaseDataset(Dataset):
-    """An abstract class representing a fastai dataset, it extends torch.utils.data.Dataset."""
+    """An abstract class representing a fastai dataset. Extends torch.utils.data.Dataset."""
     def __init__(self, transform=None):
         self.transform = transform
         self.n = self.get_n()
@@ -226,7 +226,12 @@ def open_image(fn):
         #if len(res.shape)==2: res = np.repeat(res[...,None],3,2)
         #return res
         try:
-            im = cv2.imread(str(fn), flags).astype(np.float32)/255
+            if str(fn).startswith("http"):
+                req = urllib.urlopen(str(fn))
+                image = np.asarray(bytearray(resp.read()), dtype="uint8")
+                im = cv2.imdecode(image, flags).astype(np.float32)/255
+            else:
+                im = cv2.imread(str(fn), flags).astype(np.float32)/255
             if im is None: raise OSError(f'File not recognized by opencv: {fn}')
             return cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         except Exception as e:
@@ -299,6 +304,7 @@ class ArraysNhotDataset(ArraysDataset):
 
 
 class ModelData():
+    """Encapsulates DataLoaders and Datasets for training, validation, test. Base class for fastai *Data classes."""
     def __init__(self, path, trn_dl, val_dl, test_dl=None):
         self.path,self.trn_dl,self.val_dl,self.test_dl = path,trn_dl,val_dl,test_dl
 
@@ -371,7 +377,10 @@ class ImageData(ModelData):
                 test_lbls = test[1]
                 test = test[0]
             else:
-                test_lbls = np.zeros((len(test),trn[1].shape[1]))
+                if len(trn[1].shape) == 1:
+                    test_lbls = np.zeros((len(test),1))
+                else:
+                    test_lbls = np.zeros((len(test),trn[1].shape[1]))
             res += [
                 fn(test, test_lbls, tfms[1], **kwargs), # test
                 fn(test, test_lbls, tfms[0], **kwargs)  # test_aug

@@ -1,3 +1,7 @@
+from .imports import *
+from .torch_imports import *
+from .core import *
+from .layer_optimizer import *
 from .swa import *
 from .fp16 import *
 
@@ -57,6 +61,12 @@ class Stepper():
         if self.clip:   # Gradient clipping
             if IS_TORCH_04: nn.utils.clip_grad_norm_(trainable_params_(self.m), self.clip)
             else: nn.utils.clip_grad_norm(trainable_params_(self.m), self.clip)
+        if 'wd' in self.opt.param_groups and self.opt.param_groups['wd'] != 0: 
+            #Weight decay out of the loss. After the gradient computation but before the step.
+            for group in self.opt.param_groups:
+                lr, wd = group['lr'], group['wd']
+                for p in group['params']:
+                    if p.grad is not None: p.data = p.data.add(-wd * lr, p.data)
         self.opt.step()
         if self.fp16: 
             copy_fp32_to_model(self.m, self.fp32_params)
@@ -89,8 +99,9 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
        crit: loss function to optimize. Example: F.cross_entropy
     """
 
-    all_val = kwargs.pop('all_val') if 'all_val' in kwargs else False
-    get_ep_vals = kwargs.pop('get_ep_vals') if 'get_ep_vals' in kwargs else False
+    seq_first = kwargs.pop('seq_first', False)
+    all_val = kwargs.pop('all_val', False)
+    get_ep_vals = kwargs.pop('get_ep_vals', False)
     metrics = metrics or []
     callbacks = callbacks or []
     avg_mom=0.98
@@ -114,6 +125,7 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
     cnt_phases = np.array([ep * len(dat.trn_dl) for (ep,dat) in zip(n_epochs,data)]).cumsum()
     phase = 0
     for epoch in tnrange(tot_epochs, desc='Epoch'):
+        if phase >= len(n_epochs): break #Sometimes cumulated errors make this append.
         model_stepper.reset(True)
         cur_data = data[phase]
         if hasattr(cur_data, 'trn_sampler'): cur_data.trn_sampler.set_epoch(epoch)
@@ -146,7 +158,7 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
                     break
 
         if not all_val:
-            vals = validate(model_stepper, cur_data.val_dl, metrics)
+            vals = validate(model_stepper, cur_data.val_dl, metrics, seq_first=seq_first)
             stop=False
             for cb in callbacks: stop = stop or cb.on_epoch_end(vals)
             if swa_model is not None:
@@ -194,19 +206,22 @@ def validate_next(stepper, metrics, val_iter):
     with no_grad_context():
         (*x,y) = val_iter.next()
         preds,l = stepper.evaluate(VV(x), VV(y))
-        res = [to_np(l)[0]]
+        res = [delistify(to_np(l))]
         res += [f(preds.data,y) for f in metrics]
     stepper.reset(True)
     return res
 
-def validate(stepper, dl, metrics):
+def batch_sz(x, seq_first=False):
+    if is_listy(x): x = x[0]
+    return x.shape[1 if seq_first else 0]
+
+def validate(stepper, dl, metrics, seq_first=False):
     batch_cnts,loss,res = [],[],[]
     stepper.reset(False)
     with no_grad_context():
         for (*x,y) in iter(dl):
             preds, l = stepper.evaluate(VV(x), VV(y))
-            if isinstance(x,list): batch_cnts.append(len(x[0]))
-            else: batch_cnts.append(len(x))
+            batch_cnts.append(batch_sz(x, seq_first=seq_first))
             loss.append(to_np(l))
             res.append([f(preds.data, y) for f in metrics])
     return [np.average(loss, 0, weights=batch_cnts)] + list(np.average(np.stack(res), 0, weights=batch_cnts))
@@ -217,7 +232,7 @@ def get_prediction(x):
 
 def predict(m, dl):
     preda,_ = predict_with_targs_(m, dl)
-    return to_np(torch.cat(preda))
+    return np.concatenate(preda)
 
 def predict_batch(m, x):
     m.eval()
@@ -228,15 +243,15 @@ def predict_with_targs_(m, dl):
     m.eval()
     if hasattr(m, 'reset'): m.reset()
     res = []
-    for *x,y in iter(dl): res.append([get_prediction(m(*VV(x))),y])
+    for *x,y in iter(dl): res.append([get_prediction(to_np(m(*VV(x)))),to_np(y)])
     return zip(*res)
 
 def predict_with_targs(m, dl):
     preda,targa = predict_with_targs_(m, dl)
-    return to_np(torch.cat(preda)), to_np(torch.cat(targa))
+    return np.concatenate(preda), np.concatenate(targa)
 
 # From https://github.com/ncullen93/torchsample
-def model_summary(m, input_size):
+def model_summary(m, inputs):
     def register_hook(module):
         def hook(module, input, output):
             class_name = str(module.__class__).split('.')[-1].split("'")[0]
@@ -268,11 +283,8 @@ def model_summary(m, input_size):
     summary = OrderedDict()
     hooks = []
     m.apply(register_hook)
-
-    if is_listy(input_size[0]):
-        x = [to_gpu(Variable(torch.rand(3,*in_size))) for in_size in input_size]
-    else: x = [to_gpu(Variable(torch.rand(3,*input_size)))]
-    m(*x)
+    xs = [to_gpu(Variable(x)) for x in inputs]
+    m(*xs)
 
     for h in hooks: h.remove()
     return summary
