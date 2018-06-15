@@ -31,14 +31,24 @@ RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-la
     /opt/conda/bin/conda install conda-build
 
 
-WORKDIR /git
+RUN useradd -ms /bin/bash msnow
+USER msnow
+WORKDIR /home/msnow
+
+RUN mkdir git
+RUN ls -lah /home/msnow
+WORKDIR git
+RUN pwd
 
 #RUN git clone https://github.com/fastai/fastai.git .
-RUN git clone https://github.com/MichoelSnow/data_science.git .
-RUN ls && /opt/conda/bin/conda env create -f environment--minimum.yml
+RUN git clone https://github.com/MichoelSnow/data_science.git
+WORKDIR data_science
+RUN ls && /opt/conda/bin/conda env create -f environment-minimum.yml
 RUN /opt/conda/bin/conda clean -ya
 
-ENV PATH /opt/conda/envs/cnn/bin:$PATH
+ENV PATH /opt/conda/bin:$PATH
+RUN ln -s /home/msnow/git/data_science/src/data_sci/ /home/msnow/.conda/envs/cnn/lib/python3.6/site-packages/
+
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
 #ENV USER fastai
 
