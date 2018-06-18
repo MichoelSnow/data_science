@@ -6,26 +6,38 @@ LABEL maintainer="michoel snow"
 
 RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
 
-RUN curl -O http://us.download.nvidia.com/tesla/384.145/nvidia-diag-driver-local-repo-ubuntu1604-384.145_1.0-1_amd64.deb && dpkg -i nvidia-diag-driver-local-repo-ubuntu1604-384.145_1.0-1_amd64.deb
-RUN apt-key add /var/nvidia-diag-driver-local-repo-384.145/7fa2af80.pub
+RUN add-apt-repository ppa:graphics-drivers
 
 RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recommends \
          build-essential \
-         cuda-drivers \
-         cmake \
-         git \
-         curl \
-         vim \
          ca-certificates \
+         cmake \
+         curl \
+         git \
+         libjpeg-dev \
+         libpng-dev \
          libnccl2=2.0.5-3+cuda9.0 \
          libnccl-dev=2.0.5-3+cuda9.0 \
+         nvidia-396 \
          python-qt4 \
-         libjpeg-dev \
-	 zip \
-	 unzip \
-         libpng-dev &&\
+         sudo \
+         unzip \
+         vim \
+         wget \
+          zip &&\
      rm -rf /var/lib/apt/lists/*
 
+
+#RUN wget http://us.download.nvidia.com/tesla/384.145/nvidia-diag-driver-local-repo-ubuntu1604-384.145_1.0-1_amd64.deb && dpkg -i nvidia-diag-driver-local-repo-ubuntu1604-384.145_1.0-1_amd64.deb
+#RUN apt-key add /var/nvidia-diag-driver-local-repo-384.145/7fa2af80.pub
+#
+#RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recommends \
+#        cuda-drivers &&\
+#    rm -rf /var/lib/apt/lists/*
+
+RUN useradd -ms /bin/bash msnow sudo
+USER msnow
+WORKDIR /home/msnow
 
 ENV PYTHON_VERSION=3.6
 RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
@@ -33,12 +45,6 @@ RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-la
      ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh && \
     /opt/conda/bin/conda install conda-build
-
-
-RUN useradd -ms /bin/bash msnow
-USER msnow
-WORKDIR /home/msnow
-
 
 
 RUN mkdir git
@@ -50,7 +56,10 @@ RUN pwd
 RUN git clone https://github.com/MichoelSnow/data_science.git
 WORKDIR data_science
 #RUN ls && /opt/conda/bin/conda env create -f environment-minimum.yml
-RUN ls && /opt/conda/bin/conda install --file=conda_cuda.txt --file=pip_cuda.txt
+RUN ls && /opt/conda/bin/conda install --file=conda_cuda.txt
+RUN ls && /opt/conda/bin/conda install --file=pip_cuda.txt
+
+
 RUN /opt/conda/bin/conda clean -ya
 
 ENV PATH /opt/conda/bin:$PATH
