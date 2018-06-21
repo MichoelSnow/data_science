@@ -1,8 +1,18 @@
-# docker build
+### docker build
 
-`docker build [OPTIONS] PATH | URL | -`
+see [docker image build](#docker-image-build) as `docker build` is the old version of the syntax
 
-The `docker build` command builds Docker images from a Dockerfile and a “context”. A build’s context is the set of files located in the specified `PATH` or `URL`. The build process can refer to any of the files in the context. For example, your build can use a `COPY` instruction to reference a file in the context.
+### docker run
+
+see [docker container run](#docker-container-run) as `docker run` is the old version of the syntax
+
+# docker image
+
+## docker image build
+
+`docker image build [OPTIONS] PATH | URL | -`
+
+The `docker image build` command builds Docker images from a Dockerfile and a “context”. A build’s context is the set of files located in the specified `PATH` or `URL`. The build process can refer to any of the files in the context. For example, your build can use a `COPY` instruction to reference a file in the context.
 
 The most commonly used options are
 
@@ -18,12 +28,6 @@ The most commonly used options are
 
 This will build a docker image using the file *testing* as the DockerFile, with the name *image1* and the tag *v1*, and use the current path, as denoted by `.`, as the context.
 
-
-# docker image
-
-## docker image build
-
-see [docker build](#docker-build) as they are the same command and have the same effects.  `docker build` is the older syntx and `docker image build` is the newer syntax.
 
 ## docker image ls
 
@@ -223,6 +227,3 @@ Create and run a container using the *fastai_dl2* image.  Run the container in a
 Create and run a container in the background (detached mode) using the *tda* image, publish port 5025 from the container to host port 5025, i.e., anyone connecting to this host over port 5025 will be routed to the container via port 5025.  When the container is started run the command *python3 tda_run.py*
 
 
-# docker run
-
-see [docker container run](#docker-container-run) as `docker run` is the old version of the syntax

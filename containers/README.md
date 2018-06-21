@@ -67,10 +67,10 @@ Create and run a container in the background (detached mode) using the *tda* ima
 To run an image and enter its shell, you would want to use something like:
 
 ```
-sudo docker container run -it fastai_dl2
+sudo docker container run -it image1:v1
 ```
 
-Create and run a container using the *fastai_dl2* image.  Run the container in attached mode and give a pseudo-terminal.
+Create and run a container using the *image1:v1* image.  Run the container in attached mode and give a pseudo-terminal.
 
 To enter an already running container use the `docker container exec` command.  See [docker_commands.md](docker_commands.md) for explanation of the command.
 
@@ -78,15 +78,91 @@ To enter an already running container use the `docker container exec` command.  
 
 ### Tips and Tricks
 
- To get out of a running container without stoppping it use Ctrl+p, Ctrl+q to turn interactive mode into daemon mode.
+ To get out of a running container without stoppping it use Ctrl+p, Ctrl+q to turn interactive mode into daemon mode.  To re-enter the container use the appropriate `docker container exec` command
 
 
 
 # Docker Hub
 
-`sudo docker login --username=msnow`
-`sudo docker image tag fastai_dl msnow/nn_benchmark:v1`
-`sudo docker image push msnow/nn_benchmark:v1`
+Once you have built your image you can upload to a number of repositories such as [docker hub](https://hub.docker.com/) or google's [Container Registry](https://cloud.google.com/container-registry/).  I'm going to be walking through the steps for docker hub.  First you will need to create a free account to get your docker id.  Your Docker ID gives you one private Docker Hub repository for free.  When you first create an account you will be given the option of creating a repository.  This is where you will be uploading your images.
+
+Before you push any images to your new repository you need to login from the command line:
+
+```
+sudo docker login
+```
+
+## Tagging an image
+
+Docker images in repositories are labeled using the following format:
+
+```
+<user name>/<repostiory name>:<tag>
+```
+
+Docker uses the term tag to refer to both the entire label as well as just the tag component, which can make things slightly confusing.  I will use the term label to refer to the label in its entirety and tag to refer to just the part of the label after the semicolon.  In a respotiory all images will share the smae user name and respotiory name and can be distinguished by their tags.  For example nvidia has a repository of CUDA images.  They use tags differentiate between different operating systems and build types, e.g., base vs runtime vs devel:
+
+```
+nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+nvidia/cuda:8.0-runtime-ubuntu14.04
+nvidia/cuda:9.2-base-centos7
+```
+
+When pushing an image to a repository, you need to make sure that the image is labeled using the proper format.  You can change the image label using the command:
+
+```
+docker tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]
+```
+
+Where *SOURCE_IMAGE[:TAG]* is the current label of image and  *TARGET_IMAGE[:TAG]* is the desired label for the image.  For example:
+
+```
+sudo docker tag image1 msnow/repo1:v1
+```
+
+If you do not include a tag in your label, for either the source of target images, docker will assume that the tag is *latest*, so the above command is interpreted by docker as:
+
+```
+sudo docker tag image1:latest msnow/repo1:v1
+```
+
+
+## Pushing an image
+
+
+You can push an image to your Docker hub repository using the format:
+
+```
+sudo docker push <hub-user>/<repo-name>:<tag>
+```
+
+if you don't include a tag, docker will assume that the tag is *latest*
+
+## Pulling an image
+
+To pull an image from docker hub use the command:
+
+```
+docker pull NAME[:TAG|@DIGEST]
+```
+
+As with `docker tag` and `docker push``, if you don't include a tag, docker will assume that the tag is *latest*.
+
+When you pull an image from the repository docker assumes you want the latest image with that tag.  If you want a specific version of that image, you can use the digerst format, for example instead of using
+
+```
+docker pull ubuntu:14.04
+```
+
+you might use
+
+```
+docker pull ubuntu@sha256:45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2
+```
+
+A digest takes the place of the tag when pulling an image.
+
+
 
 # Google Cloud Compute Engine
 
