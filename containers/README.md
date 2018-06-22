@@ -78,7 +78,7 @@ To enter an already running container use the `docker container exec` command.  
 
 ### Tips and Tricks
 
- To get out of a running container without stoppping it use Ctrl+p, Ctrl+q to turn interactive mode into daemon mode.  To re-enter the container use the appropriate `docker container exec` command
+ To get out of a running container without stoppping it use <kbd>CTRL</kbd>+<kbd>p</kbd>, <kbd>CTRL</kbd>+<kbd>q</kbd> to turn interactive mode into daemon mode.  To re-enter the container use the appropriate `docker container exec` command
 
 
 
@@ -164,7 +164,151 @@ A digest takes the place of the tag when pulling an image.
 
 
 
-# Google Cloud Compute Engine
+# Google Cloud
+
+## Setting up your account for GPU computing
+
+### Signing up for a free account
+
+If you ahve never used Google Cloud Platform before then you are probably eligibile for a [free trial](https://console.cloud.google.com/freetrial?authuser=2&page=0) which gives you access to all the services and $300 in credit to spend over the next 12 months.   You will still need to enter your credit card info, but you won't be charged until you go over the $300 credit limit.
+
+### Setting your default region
+
+Each of your VM instances will live in a specific region and zone.  Normally you would just set these values to the location closes to you, but each region/zone combination has access to different resources.   Go the documentation page for [Regions and Zones](https://cloud.google.com/compute/docs/regions-zones/regions-zones?hl=en_US&_ga=2.77309013.-1507351947.1529583865) to find out the resources available in each of the zones, for the GPUs you need to go to the [GPUs on Compute Engine](https://cloud.google.com/compute/docs/gpus/) documentation page.  At the time of writing, this was the breakdown of resources available by zone in region *us-east1*, according to the google documentation, which is the closest region to me with GPUs:
+
+
+
+| Zone                  | Features   | GPUs|
+| --------------------- |-------------| ------ |
+| us-east1-b        | 2.3 GHz Intel Xeon E5 v3 (Haswell) platform (default) <br>   2.2 GHz Intel Xeon E5 v4 (Broadwell) platform <br>   2.0 GHz Intel Xeon (Skylake) platform <br>  Up to 96 vCPU machine types when using the Skylake platform <br>  [Local SSDs](https://cloud.google.com/compute/docs/disks/local-ssd) <br> Memory-optimized machine types with up to 160 vCPUs and 3.75 TB of system memory| NVIDIA Tesla P100
+| us-east1-c        | 2.3 GHz Intel Xeon E5 v3 (Haswell) platform (default) <br>   2.2 GHz Intel Xeon E5 v4 (Broadwell) platform <br>   2.0 GHz Intel Xeon (Skylake) platform <br>  Up to 96 vCPU machine types when using the Skylake platform <br>  [Local SSDs](https://cloud.google.com/compute/docs/disks/local-ssd) <br> [GPUs](https://cloud.google.com/compute/docs/gpus) <br> [Sole-tenant nodes](https://cloud.google.com/compute/docs/nodes/) | NVIDIA Tesla P100  <br> NVIDIA Tesla K80
+| us-east1-d         |  2.3 GHz Intel Xeon E5 v3 (Haswell) platform (default) <br>   2.2 GHz Intel Xeon E5 v4 (Broadwell) platform <br>   2.0 GHz Intel Xeon (Skylake) platform <br>  Up to 96 vCPU machine types when using the Skylake platform <br>  [Local SSDs](https://cloud.google.com/compute/docs/disks/local-ssd) <br> [GPUs](https://cloud.google.com/compute/docs/gpus) <br> [Sole-tenant nodes](https://cloud.google.com/compute/docs/nodes/)| NVIDIA Tesla K80
+
+If your looked at the above table you will probably notice that it is not self-consistent, i.e., *us-east1-b* doesn't have GPUs listed in its features yet it supposedly has access to *NVIDIA Teslap P100*.  Don't worry about this as it gets even more self-inconsistent when we actually get to selecting the GPUs.
+
+You can set your default region and zone in the [settings page](https://console.cloud.google.com/compute/settings) of the Google Compute Engine section. You can always change your default zone and region, it is just good practice to set by default, so that all your resources will match up.
+
+
+### Requesting access to a GPU
+
+In order to attach a GPU to your VM you first need to request a quota increase (as you start with a quote of 0 GPUs).  You first need to go to the [quotas page](https://console.cloud.google.com/iam-admin/quotas?_ga=2.220448216.-1507351947.1529583865) in the admin section of the console.  The first time you go there you will rpobably see a notification near the top telling you that *You can't request an increase until you upgrade your free trial account.* and giving you the option to upgrade your account.  If you upgrade your account you still get to keep the $300 credit, the only caveat is that now if you go over the free credit you will be automatically charged after you use your credits or they expire.  As you'll see below when we set up an instance, that you can get an GPU instance running at somehwere between $0.20 to $0.50 per hour.  So there is no need to worry about running out of the credit too quickly, and as long as you keep an eye on the Billing section of the console to make sure you still have credit, you'll be fine.
+
+
+Once you have upgraded your account you can now select a GPU quote to increase.  This is where the region and zone matter, as your GPU quota will be specific to a region.  So if your VM instance is in *us-east1* then your GPU quota will need to be in that region as well.  On the top right of the quotas page you can limit your selection of resources to whatever region you want.  I'll be working with the *us-east1* region.  After you select your region you will still be left with a lot of choices.  Most of the rows will have 0/<some number> in the used column, this means that you have unuqued quota of those resources.  If you go down to the GPUs, their used column should show -/0, indicating that you have no alloted quota of GPUs.  In the us-east1 region these were the GPUs available at the time of writing.
+
+
+- NVIDIA K80 GPUs
+- NVIDIA P100 GPUs
+- NVIDIA V100 GPUs
+- Preemptible NVIDIA K80 GPUs
+- Preemptible NVIDIA P100 GPUs
+- Preemptible NVIDIA V100 GPUs
+
+You can see that in addition to the regular GPU's there are also preemptible GPUs.  Preemptible GPUs are GPUs added to a preemptible VM instance.  You can read all about [Preemptible VM Instances}(https://cloud.google.com/compute/docs/instances/preemptible) but the gist is that a preemptible instance is usually around half the cost of a non-preemtible instance, but Compute Engine might terminate (preempt) these instances if it requires access to those resources for other tasks.   Additionally, Compute Engine always terminates preemptible instances after they run for 24 hours.  Your data is still persisted on the VM when it is preempted.  So if you are using the VM instance for something like a jupyter notebook, and you make sure to save your data along the way, then a preemptible instance might just be for you.
+
+Also, you might notice that NVIDIA V100 GPUs showed up on the list of possible GPUs, even though they are not listed in the documentation as being available in this region.  This is why I take all the documentation with a grain of salt, as the resources are constantly changing.
+
+Getting back to the quotas, the general advice I have found so far is to not be too aggressive in the quotas you ask for.  Start with only one or two GPUs and then only ask for a new quota limit of 1 (unless you initially need more).  After selecting the boxes of your GPUs there is a button at the top of the page to *Edit Quotas*. Here they will ask you for your new quota limits for each GPU selected and then a rquest description.  I tend to put something like "research" as the description.  The google cloud compute team will then get back to you, usually in under a day, to, hopefully, let you know that they've increased your quotas as per your request.
+
+
+## Creating a VM instance
+
+You can create an instance directly in the Cloud Compute [VM instance](https://console.cloud.google.com/compute/instances) subsection, but I would actually advise you to instead create a template in the [instances templates](https://console.cloud.google.com/compute/instanceTemplates/) section.  This way you can easily spin up new instances without having to set every setting each time.
+
+Here are the settings which you will need to modify based on your own needs.
+
+### Machine type
+
+Select customize to go into the advanced view.  My general base settings here are 4 vCPU, 26 GB of memory and for the GPU I tend to choose 1 NVIDIA Tesla K80.
+
+### Container
+
+Even though we are going to be using docker containers, I tend to skip this option as it is intended more for exclusively running a container on your instance.  We will still be able to run our docker on the instance even if we don't directly deploy it.  If you do want to deploy a container from docker hub the address for the container image is as follows:
+
+```
+registry.hub.docker.com/<username>/<repo>:<tag>
+```
+
+### Boot disk
+
+Choose whatever os you are comfortable with.  It is probably easiest to choose the os that matches the os of your docker container.
+
+At the bottom, you can choose the type of disk (standard vs SSD) and it's size.  I tend to go with 50 GB on an SSD.
+
+### Firewall
+
+You want to check both boxes to allow for HTTP and HTTPS traffic
+
+### Management, disks, networking SSH keys
+
+#### Management
+
+This is where you can set whether or not you want a preemptible instance.  By default an instance is not preemptible, but you can set preemptibility to *on* to change that.
+
+#### SSH Keys
+
+you can add your SSH keys here or you can specify them for the whole project in the SSH key tab of the [Metadata](https://console.cloud.google.com/compute/metadata/sshKeys) section in the Google compute engine.
+
+If you do nothave an existing private na dmatching publc SSH key file, you will need to generate a new SSH key.  THe google cloud documentation of [creating a new SSH key](https://cloud.google.com/compute/docs/instances/adding-removing-ssh-keys#createsshkeys) is quite good, so I'll just cover the basics to save the reader the effort of clicking on the link (plus there is never any guarantee on how long that page will exist)
+
+##### Linux and Mac
+
+Open a terminal and use the `ssh keygen` command to generate a new key.  Google cloud likes to have a username associated with the key so you will need to use the `-c` flag.
+
+```
+ssh-keygen -t rsa -f ~/.ssh/[KEY_FILENAME] -C [USERNAME]
+```
+
+`[KEY_FILENAME]` is the name that you want to use for your SSH key files. For example, a filename of *my-ssh-key* generates a private key file named *my-ssh-key* and a public key file named *my-ssh-key.pub*.
+
+You then want to restrict access to your private key so that only you can read it and nobody can write to it.
+
+```
+chmod 400 ~/.ssh/[KEY_FILENAME]
+```
+
+You will be asked for a passphrase to generate the private key.  See this [serverfault response](https://serverfault.com/questions/142959/is-it-okay-to-use-a-ssh-key-with-an-empty-passphrase) for a discussion regarding the need for SSH key passphrases.  There is also the ssh-agen which can make it more convenient to use a ssh key with a passphrase.
+
+
+#### Windows
+
+Windows does not natively have a tool for generating SSH keys, but you can use a 3rd party tool to generate one, such as git or puttygen.  I'm going to be walking through the puttygen version, but here is a [link](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) to the gitbash instruction and here is a post on [configuring ssh to work in powershel](https://dillieodigital.wordpress.com/2015/10/20/how-to-git-and-ssh-in-powershell/).
+
+[Puttygen](http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html)  is a tool for generating SSH keys.  If you have putty installed then you already have puttygen, otherwise you need to [download it](http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html).  Find and run the `puttygen.exe` file, which will open a new window to configure your key settings.
+
+Click Generate and follow the on-screen instructions to generate a new key. For most cases, the default parameters are fine, but you must generate keys with at least 2048 bits. When you are done generating the key, the tool displays your public key value.  In the Key comment section, replace the existing text with the username of the user for whom you will apply the key. Optionally, you can enter a Key passphrase to protect your key. Click Save private key to write your private key to a file with a .ppk extension. Click Save public key to write your public key to a file for later use. Keep the PuTTYgen window open for now.  Note that if you created an SSH key with PuTTYgen, the default public SSH key file will not be formatted correctly if it is opened outside of PuTTYgen, so to view it you will need to open putty gen and load your key.
+
+
+For all OS's, once you have generated your SSH key you want to copy the public key into a new SSH key on your metadata page.  When you are done hit save at the bottom of the page.
+
+
+
+### Admin Console
+
+Most of the base settings for you project can be sett through the [Admin console](https://console.cloud.google.com/iam-admin)
+
+#### Settings
+
+Here you can change the name of your project
+
+### Getting access to a gpu
+
+### Compute Engine
+
+To create VM instance on Google Cloud you need to go to the [Google Compute Engine](https://console.cloud.google.com/compute)
+
+
+[Google Cloud SDK Documentation](https://cloud.google.com/sdk/docs/#rpm) - red hat/centos
+[gcloud compute instances list](https://cloud.google.com/sdk/gcloud/reference/compute/instances/list)
+[Connecting to Instances](https://cloud.google.com/compute/docs/instances/connecting-to-instance)
+[Containers on Compute Engine](https://cloud.google.com/compute/docs/containers/)
+[pushing a docker image to google container repository](https://stackoverflow.com/questions/20429284/how-do-i-run-docker-on-google-compute-engine)
+[Setting a root password for a Docker image created with USER](https://www.kevinhooke.com/2015/11/08/setting-a-root-password-for-a-docker-image-created-with-user/)
+[How to install latest nvidia drivers in Linux](http://www.linuxandubuntu.com/home/how-to-install-latest-nvidia-drivers-in-linux)
+
+
+
+
 
 ```
 sudo docker build -f Dockerfile -t fastai_dl .
