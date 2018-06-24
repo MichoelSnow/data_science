@@ -6,7 +6,7 @@
 sudo apt-get update
 
 # Install packages to allow apt to use a repository over HTTPS:
-sudo apt-get install \
+sudo apt-get -y install \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -28,7 +28,7 @@ sudo add-apt-repository \
 sudo apt-get update
 
 # Install the latest version of Docker CE
-sudo apt-get install docker-ce
+sudo apt-get -y install docker-ce
 
 # Verify that Docker CE is installed correctly by running the hello-world image.
 sudo docker run hello-world

@@ -40,10 +40,49 @@ Dockerfiles are the instructions used by docker to build an image.  Similar to s
 
 For a basic introduction see the [Dockerfile markdown](Dockerfile_intro.md) or the full documentation at the official [Dockerfile reference](https://docs.docker.com/engine/reference/builder/)
 
+For this project the container is meant to use CUDA on an nvidia GPU on ubuntu (can also be centOS, I just chose ubuntu), so my `FROM` command is
+
+```
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+```
+
+Since we are going to need the nvidia deep learning SDK to support CUDA we want to add the nvidia machine learning repos to our sources list
+
+```
+RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
+```
+
+Then install the packages we need
+
+```
+RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recommends \
+         build-essential \
+         cmake \
+         git \
+         curl \
+         vim \
+         ca-certificates \
+         libnccl2=2.0.5-3+cuda9.0 \
+         libnccl-dev=2.0.5-3+cuda9.0 \
+         python-qt4 \
+         libjpeg-dev \
+         zip \
+         unzip \
+         sudo \
+         wget \
+         libpng-dev &&\
+     rm -rf /var/lib/apt/lists/*
+```
+
+
+
+
+
 
 ## Docker commands
 
 For the most common commands see [docker_commands.md](docker_commands.md) or the [full reference](https://docs.docker.com/engine/reference/commandline/docker/)
+
 
 ### build the image
 
@@ -231,7 +270,7 @@ registry.hub.docker.com/<username>/<repo>:<tag>
 
 ### Boot disk
 
-Choose whatever os you are comfortable with.  It is probably easiest to choose the os that matches the os of your docker container.
+Choose whatever os you are comfortable with.  It is probably easiest to choose the os that matches the os of your docker container.  In my case the docker container is built on top of the Nvidia ubuntu 16.04 container, so that is the os I am going to choose for my VM.
 
 At the bottom, you can choose the type of disk (standard vs SSD) and it's size.  I tend to go with 50 GB on an SSD.
 
@@ -281,27 +320,180 @@ Click Generate and follow the on-screen instructions to generate a new key. For 
 
 For all OS's, once you have generated your SSH key you want to copy the public key into a new SSH key on your metadata page.  When you are done hit save at the bottom of the page.
 
+### Starting a VM instance
+
+Once you have all your template settings set as you would lik ethem you can save your template.  You template should now be listed in the [instances templates](https://console.cloud.google.com/compute/instanceTemplates/) section.   If you click on the 3 dots to the right of your template, one of the options should be to *create VM*, you can also create a vm from a template by clicking on the template and then clicking on the Create VM option at the top of the temaplte summary page.
+
+## Connecting to your instance
+
+The OS of your container will determine how you can connect to it.  This guide will go over connecting to linux based instances using the `gcloud` command line tool.  For other methods of connecting to Linux instances as well as for methods to connect to Windoes instances, see the google cloud documentation on [Connecting to Instances](https://cloud.google.com/compute/docs/instances/connecting-to-instance).  Before you connect using `gcloud` you have to install the sdk and set up `gcloud` compute.
+
+### Installing gcloud
+
+There is a different installation process for each OS, as explained in the documentation for the [Google Cloud SDK](https://cloud.google.com/sdk/docs/).  Follow the steps for whichever OS you are running on your machine.
+
+For the most common gcloud commands and their usage see [gcloud_commands.md](gcloud_commands.md)
+
+#### Set up gcloud compute
+
+Here is the link to the [documentation](https://cloud.google.com/compute/docs/gcloud-compute/#auth)
 
 
-### Admin Console
+Google Compute Engine uses OAuth2 to authenticate and authorize access. Before you can use `gcloud compute`, you must first authorize the Cloud SDK on your behalf to access your project and acquire an auth token.  If you are using the `gcloud` command-line tool for the first time, `gcloud` automatically uses the default configuration. For most cases, you only need the `default` configuration.
 
-Most of the base settings for you project can be sett through the [Admin console](https://console.cloud.google.com/iam-admin)
+Run `gcloud init` to start the authentication process. Hit enter when prompted.  The command prints a URL and tries to open a browser window to request access to your project. If a browser window can be opened, you will see the following output:
 
-#### Settings
+```
+Welcome! This command will take you through the configuration of gcloud.
 
-Here you can change the name of your project
-
-### Getting access to a gpu
-
-### Compute Engine
-
-To create VM instance on Google Cloud you need to go to the [Google Compute Engine](https://console.cloud.google.com/compute)
+Your current configuration has been set to: [default]
 
 
-[Google Cloud SDK Documentation](https://cloud.google.com/sdk/docs/#rpm) - red hat/centos
-[gcloud compute instances list](https://cloud.google.com/sdk/gcloud/reference/compute/instances/list)
-[Connecting to Instances](https://cloud.google.com/compute/docs/instances/connecting-to-instance)
+To continue, you must login. Would you like to login (Y/n)?  y
+
+
+Your browser has been opened to visit:
+
+
+https://accounts.google.com/o/oauth2/auth?scope=https%3A%2F%2Fwww.googleapis.co%2
+Fauth%2Fappengine.admin+https%3A%2F%2...
+```
+
+
+
+If the Cloud SDK detects that a browser can not be opened (e.g., you are working on a remote machine) you will see the output below. Or, if you are working on a local machine and your browser doesn't automatically load the URL, then retry the `gcloud init` command with the `--console-only` flag:
+
+```
+Go to the following link in your browser:
+
+https://accounts.google.com/o/oauth2/auth?scope=https%3A%2F%2Fwww.googleapis.co%2
+Fauth%2Fappengine.admin+https%3A%2F%2...
+
+
+Enter verification code:
+```
+Copy the authentication URL and paste it into a browser. Then paste the verification code back into the terminal.
+
+After setting up your credentials, `gcloud` prompts for a default project for this configuration. Select a project ID from the list.
+
+After you set this property, all of your `gcloud compute` commands use the default project ID unless you override it with the `--project flag` or set the `CLOUDSDK_CORE_PROJECT` environment variable. If you do not set a default project or environment variable, you must include a `--project` flag in each `gcloud compute` command that you run.
+
+When you run gcloud for the first time, it also sets a default zone and default region for you, based on the default zone and region keys in your project metadata.   If it is not set, `gcloud` will ask you to provide it with each request.
+
+
+### gcloud compute ssh
+
+```
+gcloud compute ssh [USER@]INSTANCE [--ssh-flag=SSH_FLAG]
+```
+
+`gcloud compute ssh` is the main command you will be using to connect to your instance.  `gcloud compute ssh` is a thin wrapper around the `ssh(1)` command that takes care of authentication and the translation of the instance name into an IP address. I am going to be going over my most common uses, but for the full docuemtnation see [gcloud compute ssh](https://cloud.google.com/sdk/gcloud/reference/compute/ssh).
+
+
+### Arguments
+
+- `USER`
+  - username with which to SSH. If left blank will use the $USER from the environment.
+- `INSTANCE`
+  - VM instance to SSH into.  Once you have initialized gcloud and linked to a project, you can ssh with just the instance name, and don't need to know the actual IP address.
+- `--ssh-flag=SSH_FLAG`
+  - Additional flags to be passed to ssh(1). It is recommended that flags be passed using an assignment operator and quotes
+
+#### Example
+
+```
+gcloud compute ssh msnow@instance-1 --ssh-flag="-L 8898:localhost:8898"
+```
+
+This connects to *instance1* as user *msnow* and the SSH flag connects port *8898* on the remote machine to my local port *8898*.  I most commonly use this setup when I want to run Jupyter notebooks on the VM instance.
+
+
+
+### Confirm docker version
+
+run `docker -v` to check your version of docker.  If docker is not isnallted or less than version 1.12 you will need to install docker on your VM instance.  Follow the instruction in the previous [Install and Start Docker](#install-and-start-docker) section.
+
+
+## Install Nvidia CUDA drivers
+
+Follow the step in the CUDA toolkit documentation for the installation appropriate to your OS.  Here I am following the [Nvidia CUDA Installation Guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#abstract)
+
+
+### Pre-installation Actions
+
+- Verify You Have a CUDA-Capable GPU
+  - `lspci | grep -i nvidia` should return something like `00:04.0 3D controller: NVIDIA Corporation GK210GL [Tesla K80] (rev a1)`
+- Verify You Have a Supported Version of Linux
+  - `uname -m && cat /etc/*release` should return a version that matches one of the ones supported
+- Verify the System Has gcc Installed
+  - `gcc --version` should return something like `gcc (Ubuntu 5.4.0-6ubuntu1~16.04.9) 5.4.0 20160609`
+  - If this returns an error like, `The program 'gcc' is currently not installed. To run 'gcc' please ask your administrator to install the package 'gcc'`, then you can install gcc on ubuntu with the following command `sudo apt-get install build-essential`
+- Verify the System has the Correct Kernel Headers and Development Packages Installed
+  - While the Runfile installation performs no package validation, the RPM and Deb installations of the driver will make an attempt to install the kernel header and development packages if no version of these packages is currently installed. However, it will install the latest version of these packages, which may or may not match the version of the kernel your system is using. Therefore, it is best to manually ensure the correct version of the kernel headers and development packages are installed prior to installing the CUDA Drivers, as well as whenever you change the kernel version.
+  - The version of the kernel your system is running can be found by running the following command `uname -r`
+  - On ubuntu the kernel headers and development packages for the currently running kernel can be installed with `sudo apt-get install linux-headers-$(uname -r)`
+- Choose an Installation Method
+  - The CUDA Toolkit can be installed using either of two different installation mechanisms: distribution-specific packages (RPM and Deb packages), or a distribution-independent package (runfile packages). The distribution-independent package has the advantage of working across a wider set of Linux distributions, but does not update the distribution's native package management system. The distribution-specific packages interface with the distribution's native package management system. It is recommended to use the distribution-specific packages, where possible.
+
+
+### Package Manager Installation
+
+- Download the CUDA toolkit
+  - go to the [CUDA toolkit archive](https://developer.nvidia.com/cuda-toolkit-archive) and find the toolkit that matches the CUDA version of your container
+  - Select your target platform and for *Installer Type* choose deb (local)
+  - Copy the links for the installer and then download them to your VM instance with something like `wget`
+  - At the bottom of the page, below the buttons to download the installers, there should also be the documentation for that specific version, soemthing like [Installation Guide for Linux](http://developer.download.nvidia.com/compute/cuda/9.0/Prod/docs/sidebar/CUDA_Installation_Guide_Linux.pdf)
+- Install repository metadata
+  - `sudo dpkg -i cuda-repo-<distro>_<version>_<architecture>.deb`
+  - For my docker and os this becomes
+    - `sudo dpkg -i cuda-repo-ubuntu1604_9.0.176-1_amd64.deb`
+  - You can go to Nvidia's [CUDA repo](https://developer.download.nvidia.com/compute/cuda/repos/) to find the one that matches your settings
+- Installing the CUDA public GPG key
+  - The previous command should have suggested a command to run to install the public CUDA GPG key, something like `sudo apt-key add /var/cuda-repo-9-0-local/7fa2af80.pub`
+  - If not you can use the general form `sudo apt-key add /var/cuda-repo-<version>/7fa2af80.pub` where version is your CUDA toolkit version, e.g., 9-0-local
+  - If it works it should return `OK`
+- Update the Apt repository cache and install CUDA
+  - `sudo apt-get update`
+  - `sudo apt-get install cuda`
+- Reboot the system to load the NVIDIA drivers.
+
+### Post-installation Actions
+
+- The PATH variable needs to include /usr/local/cuda-<version>/bin
+  -  `export PATH=/usr/local/cuda-<varsion>/bin${PATH:+:${PATH}}`
+    - `export PATH=/usr/local/cuda-9.0/bin${PATH:+:${PATH}}`
+- Verify the integrity of the installation (optional)
+  - Install Writable Samples
+    - `cuda-install-samples-9.0.sh ~`
+  - Verify the Driver Version
+    - `cat /proc/driver/nvidia/version`
+  - Compiling the Examples
+    - `cd  ~/NVIDIA_CUDA-9.0_Samples`
+    - `make`
+  - Running the Binaries
+    - `bin/x86_64/linux/release/deviceQuery`
+      - The important outcomes are that a device was found , that the device matches the one on your system, and that the test passed.
+      - On systems where SELinux is enabled, you might need to temporarily disable this
+security feature to run deviceQuery. To do this, type `setenforce 0`
+    - 'bin/x86_64/linux/release/bandwidthTest'
+      - This test  ensures that the system and the CUDA-capable device are able to communicate correctly
+      -  The important point is that you obtain measurements, and that the second-to-last line confirms that all necessary tests passed
+
+
+## NVIDIA Container Runtime for Docker
+
+Before you can utilize the NVIDIA drivers in your container you need to install the NVIDIA container runtime.  The runtime allows driver agnostic CUDA images and provides a Docker command line wrapper that mounts the user mode components of the driver and the GPU device files into the container at launch.  See these links for more information on [docker container runtime theory](https://devblogs.nvidia.com/gpu-containers-runtime/) and the process for [installing the runtime](https://github.com/NVIDIA/nvidia-docker).
+
+To make things easier I have included a shell script to install the runtime for you, it is the [nvidia-docker-ubuntu.sh](nvidia-docker-ubuntu.sh) file in this directory
+
+## Building your container on the VM instance
+
 [Containers on Compute Engine](https://cloud.google.com/compute/docs/containers/)
+
+
+
+
+[gcloud compute instances list](https://cloud.google.com/sdk/gcloud/reference/compute/instances/list)
 [pushing a docker image to google container repository](https://stackoverflow.com/questions/20429284/how-do-i-run-docker-on-google-compute-engine)
 [Setting a root password for a Docker image created with USER](https://www.kevinhooke.com/2015/11/08/setting-a-root-password-for-a-docker-image-created-with-user/)
 [How to install latest nvidia drivers in Linux](http://www.linuxandubuntu.com/home/how-to-install-latest-nvidia-drivers-in-linux)
@@ -315,8 +507,6 @@ sudo docker build -f Dockerfile -t fastai_dl .
 docker pull msnow/nn_benchmark:v1
 docker run -it -p 8898:8898 msnow/nn_benchmark:v1
 jupyter notebook --ip 0.0.0.0 --no-browser --port 8898
-gcloud compute ssh msnow@instance-1 --ssh-flag="-L 8898:localhost:8898"
-https://docs.docker.com/engine/reference/builder/
 ```
 
 ## Get the latest nvidia drivers
