@@ -1,13 +1,11 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:9.2-cudnn7-devel-ubuntu16.04
 
 # Built off the paperspace fastai docker
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 LABEL maintainer="michoel snow"
 
 RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
-
-RUN add-apt-repository ppa:graphics-drivers
-
+ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recommends \
          build-essential \
          ca-certificates \
@@ -16,9 +14,8 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
          git \
          libjpeg-dev \
          libpng-dev \
-         libnccl2=2.0.5-3+cuda9.0 \
-         libnccl-dev=2.0.5-3+cuda9.0 \
-         nvidia-396 \
+         libnccl2\
+         libnccl-dev \
          python-qt4 \
          sudo \
          unzip \
@@ -35,7 +32,11 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
 #        cuda-drivers &&\
 #    rm -rf /var/lib/apt/lists/*
 
-RUN useradd -ms /bin/bash msnow sudo
+
+RUN useradd -ms /bin/bash msnow
+RUN usermod -aG sudo msnow
+WORKDIR /opt
+RUN chown msnow /opt
 USER msnow
 WORKDIR /home/msnow
 
@@ -47,25 +48,17 @@ RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-la
     /opt/conda/bin/conda install conda-build
 
 
-RUN mkdir git
-RUN ls -lah /home/msnow
-WORKDIR git
-RUN pwd
 
 #RUN git clone https://github.com/fastai/fastai.git .
-RUN git clone https://github.com/MichoelSnow/data_science.git
-WORKDIR data_science
 #RUN ls && /opt/conda/bin/conda env create -f environment-minimum.yml
-RUN ls && /opt/conda/bin/conda install --file=conda_cuda.txt
-RUN ls && /opt/conda/bin/conda install --file=pip_cuda.txt
 
 
 RUN /opt/conda/bin/conda clean -ya
 
 ENV PATH /opt/conda/bin:$PATH
 #RUN ln -s /home/msnow/git/data_science/src/data_sci/ /home/msnow/.conda/envs/cnn/lib/python3.6/site-packages/
-
-ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+RUN conda install pytorch torchvision cuda91 -c pytorch
+RUN conda install -y jupyter
 #ENV USER fastai
 
 #CMD source activate fastai
