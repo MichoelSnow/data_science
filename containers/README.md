@@ -1,10 +1,25 @@
 This guide will hopefully help with the following processes:
 
-- Building/running docker containers
-- Creation of google cloud compute instances
-   - Creating instances built on docker containers
-- Accessing gcloud compute instances and running jupyter notebooks on them
-  - CUDA enabled
+- [Building/running docker containers](#docker)
+  - [Writing Dockerfiles](#dockerfiles)
+  - [Using docker commnads](#docker-commands)
+- [Interacting with Docker hub](#docker-hub)
+  - [Tagging an image](#tagging-an-image)
+  - [Pushing an image](#pushing-an-image)
+  - [Pulling an image](#pulling-an-image)
+- [Setting up a google cloud instance with CUDA support](#google-cloud)
+  - [Setting up your account for GPU computing](#setting-up-your-account-for-gpu-computing)
+  - [Creating a VM instance](#creating-a-vm-instance)
+  - [Connecting to your instance](#connecting-to-your-instance)
+  - [Install Nvidia CUDA drivers](#install-nvidia-cuda-drivers)
+  - [NVIDIA Container Runtime for Docker](#nvidia-container-runtime-for-docker)
+- [Running a container on your VM connected to the GPU](#running-a-container-on-your-vm-connected-to-the-gpu)
+  - [Running your container on the VM instance](#running-your-container-on-the-vm-instance)
+  - [Confirm GPU connection](#confirm-that-the-gpu-is-connected-to-the-container)
+  - [Run jupyter notebook](#run-jupyter-notebook)
+
+
+
 
 
 # Docker
@@ -272,7 +287,7 @@ registry.hub.docker.com/<username>/<repo>:<tag>
 
 Choose whatever os you are comfortable with.  It is probably easiest to choose the os that matches the os of your docker container.  In my case the docker container is built on top of the Nvidia ubuntu 16.04 container, so that is the os I am going to choose for my VM.
 
-At the bottom, you can choose the type of disk (standard vs SSD) and it's size.  I tend to go with 50 GB on an SSD.
+At the bottom, you can choose the type of disk (standard vs SSD) and it's size.  I tend to go with 100 GB on an SSD.
 
 ### Firewall
 
@@ -446,16 +461,20 @@ Follow the step in the CUDA toolkit documentation for the installation appropria
 - Install repository metadata
   - `sudo dpkg -i cuda-repo-<distro>_<version>_<architecture>.deb`
   - For my docker and os this becomes
-    - `sudo dpkg -i cuda-repo-ubuntu1604_9.0.176-1_amd64.deb`
+    - `sudo dpkg -i cuda-repo-ubuntu1604-9-2-local_9.2.88-1_amd64`
+    - `sudo dpkg -i cuda-repo-ubuntu1604-9-2-local-cublas-update-1_1.0-1_amd64`
   - You can go to Nvidia's [CUDA repo](https://developer.download.nvidia.com/compute/cuda/repos/) to find the one that matches your settings
+  - Repeat this step for any patches that you downloaded as well
 - Installing the CUDA public GPG key
-  - The previous command should have suggested a command to run to install the public CUDA GPG key, something like `sudo apt-key add /var/cuda-repo-9-0-local/7fa2af80.pub`
+  - The previous command should have suggested a command to run to install the public CUDA GPG key, something like `sudo apt-key add /var/cuda-repo-9-2-local/7fa2af80.pub`
   - If not you can use the general form `sudo apt-key add /var/cuda-repo-<version>/7fa2af80.pub` where version is your CUDA toolkit version, e.g., 9-0-local
   - If it works it should return `OK`
+  - Repeat for any patches that were installed as well, .e.g, `sudo apt-key add /var/cuda-repo-9-2-local-cublas-update-1/7fa2af80.pub`
 - Update the Apt repository cache and install CUDA
   - `sudo apt-get update`
   - `sudo apt-get install cuda`
 - Reboot the system to load the NVIDIA drivers.
+  - 'sudo reboot'
 
 ### Post-installation Actions
 
@@ -486,39 +505,27 @@ Before you can utilize the NVIDIA drivers in your container you need to install 
 
 To make things easier I have included a shell script to install the runtime for you, it is the [nvidia-docker-ubuntu.sh](nvidia-docker-ubuntu.sh) file in this directory
 
-## Building your container on the VM instance
+# Running a container on your VM connected to the GPU
 
-[Containers on Compute Engine](https://cloud.google.com/compute/docs/containers/)
+## Running your container on the VM instance
 
+Pull your docker container to the instance, `sudo docker pull user/repo:tag`.  If you want to build your container on the VM instead, use a command similar to `sudo docker build -f Dockerfile -t image_name .`
 
-
-
-[gcloud compute instances list](https://cloud.google.com/sdk/gcloud/reference/compute/instances/list)
-[pushing a docker image to google container repository](https://stackoverflow.com/questions/20429284/how-do-i-run-docker-on-google-compute-engine)
-[Setting a root password for a Docker image created with USER](https://www.kevinhooke.com/2015/11/08/setting-a-root-password-for-a-docker-image-created-with-user/)
-[How to install latest nvidia drivers in Linux](http://www.linuxandubuntu.com/home/how-to-install-latest-nvidia-drivers-in-linux)
+Run your container using `sudo docker run --runtime=nvidia -it -p 8898:8898 user/repo:tag`.  The extra arguments set the runtime to use the nvidia container, forward the hosts port 8898 to the container's port 8898 and opens a pseudo-terminal.
 
 
+## Confirm that the GPU is connected to the container
 
-
+Enter the container with something like the following:
 
 ```
-sudo docker build -f Dockerfile -t fastai_dl .
-docker pull msnow/nn_benchmark:v1
-docker run -it -p 8898:8898 msnow/nn_benchmark:v1
-jupyter notebook --ip 0.0.0.0 --no-browser --port 8898
+sudo docker run --runtime=nvidia -it -p 8898:8898 msnow/nn_benchmark:v2
 ```
 
-## Get the latest nvidia drivers
+or if the container is already running then enter it using the `docker exec` command, e.g., `sudo docker exec -it epic_edison bash`
 
-http://www.nvidia.com/Download/index.aspx?lang=en-us
+open python on the container and then for each of the following, your ouptut should match (except for the last one, which should print out whichever GPU you have conncected on the backend.
 
-## Install docker on vm
-
-## Check for gpus on machine
-`conda install pytorch torchvision cuda90 -c pytorch`
-
-`lspci`
 
 ```python
 In [1]: import torch
@@ -533,8 +540,30 @@ In [4]: torch.cuda.device_count()
 Out[4]: 1
 
 In [5]: torch.cuda.get_device_name(0)
-Out[5]: 'GeForce GTX 950M'
+Out[5]: 'Tesla K80'
 ```
+
+## Run jupyter notebook
+
+
+```
+jupyter notebook --ip 0.0.0.0 --no-browser --port 8898
+```
+
+If you used `gcloud compute` with the SSH flag `-L` then you should be able to connect to the jupyter notebook from whatever port you set, e.g., 8898, as `loalhost:8898` and then enter in the generated key.
+
+
+
+
+
+
+[Containers on Compute Engine](https://cloud.google.com/compute/docs/containers/)
+[gcloud compute instances list](https://cloud.google.com/sdk/gcloud/reference/compute/instances/list)
+[pushing a docker image to google container repository](https://stackoverflow.com/questions/20429284/how-do-i-run-docker-on-google-compute-engine)
+[Setting a root password for a Docker image created with USER](https://www.kevinhooke.com/2015/11/08/setting-a-root-password-for-a-docker-image-created-with-user/)
+[How to install latest nvidia drivers in Linux](http://www.linuxandubuntu.com/home/how-to-install-latest-nvidia-drivers-in-linux)
+
+
 
 `sudo docker exec -it --user root  <container> bash`
 `sudo adduser <user> sudo` ## add user to sudoers
