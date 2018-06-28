@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 
-mkdir git
-cd git
+mkdir ~/git
+cd ~/git
 git clone https://github.com/MichoelSnow/data_science.git
 cd data_science/containers/
 sh docker-install-ubuntu.sh
