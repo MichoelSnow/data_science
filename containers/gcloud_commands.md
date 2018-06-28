@@ -127,6 +127,18 @@ gcloud config set compute/zone asia-east1-b
 
 set the zone property in the compute section
 
+# gcloud init
+
+```
+gcloud init [--console-only]
+```
+gcloud init launches an interactive Getting Started workflow for gcloud. It performs the following setup steps:
+- Authorizes gcloud and other SDK tools to access Google Cloud Platform using your user account credentials, or lets you select from accounts whose credentials are already available.
+- Sets properties in a gcloud configuration, including the current project and the default Google Compute Engine region and zone.
+
+use the `--console-only` flag to prevent the command from launching a browser for authiroization.  Instead it will ask you to go to the site and copy the necessary key.
+
+
 # gcloud projects
 
 ## gcloud projects list
