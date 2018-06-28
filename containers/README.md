@@ -467,27 +467,27 @@ Follow the step in the CUDA toolkit documentation for the installation appropria
   - Repeat this step for any patches that you downloaded as well
 - Installing the CUDA public GPG key
   - The previous command should have suggested a command to run to install the public CUDA GPG key, something like `sudo apt-key add /var/cuda-repo-9-2-local/7fa2af80.pub`
-  - If not you can use the general form `sudo apt-key add /var/cuda-repo-<version>/7fa2af80.pub` where version is your CUDA toolkit version, e.g., 9-0-local
+  - If not you can use the general form `sudo apt-key add /var/cuda-repo-<version>/7fa2af80.pub` where version is your CUDA toolkit version, e.g., 9-2-local
   - If it works it should return `OK`
   - Repeat for any patches that were installed as well, .e.g, `sudo apt-key add /var/cuda-repo-9-2-local-cublas-update-1/7fa2af80.pub`
 - Update the Apt repository cache and install CUDA
   - `sudo apt-get update`
   - `sudo apt-get install cuda`
 - Reboot the system to load the NVIDIA drivers.
-  - 'sudo reboot'
+  - `sudo reboot`
 
 ### Post-installation Actions
 
 - The PATH variable needs to include /usr/local/cuda-<version>/bin
-  -  `export PATH=/usr/local/cuda-<varsion>/bin${PATH:+:${PATH}}`
-    - `export PATH=/usr/local/cuda-9.0/bin${PATH:+:${PATH}}`
+  -  `export PATH=/usr/local/cuda-<version>/bin${PATH:+:${PATH}}`
+    - `export PATH=/usr/local/cuda-9.2/bin${PATH:+:${PATH}}`
 - Verify the integrity of the installation (optional)
   - Install Writable Samples
-    - `cuda-install-samples-9.0.sh ~`
+    - `cuda-install-samples-9.2.sh ~`
   - Verify the Driver Version
     - `cat /proc/driver/nvidia/version`
   - Compiling the Examples
-    - `cd  ~/NVIDIA_CUDA-9.0_Samples`
+    - `cd  ~/NVIDIA_CUDA-9.2_Samples`
     - `make`
   - Running the Binaries
     - `bin/x86_64/linux/release/deviceQuery`
