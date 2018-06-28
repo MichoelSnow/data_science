@@ -58,7 +58,8 @@ RUN /opt/conda/bin/conda clean -ya
 ENV PATH /opt/conda/bin:$PATH
 #RUN ln -s /home/msnow/git/data_science/src/data_sci/ /home/msnow/.conda/envs/cnn/lib/python3.6/site-packages/
 RUN conda install pytorch torchvision cuda91 -c pytorch
-RUN conda install -y jupyter
+RUN conda install -y jupyter opencv bcolz tqdm matplotlib scipy seaborn graphviz python-graphviz
+RUN pip install sklearn-pandas isoweek pandas-summary torchtext
 #ENV USER fastai
 
 #CMD source activate fastai
