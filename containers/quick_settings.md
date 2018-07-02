@@ -30,9 +30,9 @@ If it does not exist, you can create it through the [gcloud cli](https://cloud.g
 
 If your desired instance exists but is not running, you can start it with
 
-'''
+```
 gcloud compute instances start [INSTANCES]
-'''
+```
 
 You can then connect to your desired instance using
 
