@@ -25,9 +25,9 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
      rm -rf /var/lib/apt/lists/*
 
 
-
 RUN useradd -ms /bin/bash msnow
 RUN usermod -aG sudo msnow
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 WORKDIR /opt
 RUN chown msnow /opt
 USER msnow
@@ -39,12 +39,11 @@ RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-la
      ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh && \
     /opt/conda/bin/conda install conda-build
-
-
-
 RUN /opt/conda/bin/conda clean -ya
 
 ENV PATH /opt/conda/bin:$PATH
 RUN conda install pytorch torchvision cuda91 -c pytorch
 RUN conda install -y jupyter opencv bcolz tqdm matplotlib scipy seaborn graphviz python-graphviz
-RUN pip install sklearn-pandas isoweek pandas-summary torchtext
+RUN conda install -c conda-forge jupyter_contrib_nbextensions
+RUN pip install sklearn-pandas isoweek pandas-summary tocd rchtext
+
