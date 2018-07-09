@@ -7,6 +7,12 @@ def is_listy(x): return isinstance(x, (list,tuple))
 def is_iter(x): return isinstance(x, collections.Iterable)
 def map_over(x, f): return [f(o) for o in x] if is_listy(x) else f(x)
 def map_none(x, f): return None if x is None else f(x)
+def delistify(x): return x[0] if is_listy(x) else x
+def listify(x, y):
+    if not is_iter(x): x=[x]
+    n = y if type(y)==int else len(y)
+    if len(x)==1: x = x * n
+    return x
 
 conv_dict = {np.dtype('int8'): torch.LongTensor, np.dtype('int16'): torch.LongTensor,
     np.dtype('int32'): torch.LongTensor, np.dtype('int64'): torch.LongTensor,
@@ -19,7 +25,7 @@ def A(*a):
 def T(a, half=False, cuda=True):
     """
     Convert numpy array into a pytorch tensor. 
-    if Cuda is available and USE_GPU=ture, store resulting tensor in GPU.
+    if Cuda is available and USE_GPU=True, store resulting tensor in GPU.
     """
     if not torch.is_tensor(a):
         a = np.array(np.ascontiguousarray(a))
@@ -63,7 +69,7 @@ def to_np(v):
 IS_TORCH_04 = LooseVersion(torch.__version__) >= LooseVersion('0.4')
 USE_GPU = torch.cuda.is_available()
 def to_gpu(x, *args, **kwargs):
-    '''puts pytorch variable to gpu, if cuda is avaialble and USE_GPU is set to true. '''
+    '''puts pytorch variable to gpu, if cuda is available and USE_GPU is set to true. '''
     return x.cuda(*args, **kwargs) if USE_GPU else x
 
 def noop(*args, **kwargs): return
@@ -72,6 +78,8 @@ def split_by_idxs(seq, idxs):
     '''A generator that returns sequence pieces, seperated by indexes specified in idxs. '''
     last = 0
     for idx in idxs:
+        if not (-len(seq) <= idx < len(seq)):
+          raise KeyError(f'Idx {idx} is out-of-bounds')
         yield seq[last:idx]
         last = idx
     yield seq[last:]

@@ -8,6 +8,7 @@
     Author's implementation: https://github.com/timgaripov/swa
 """
 
+import torch
 from .sgdr import *
 from .core import *
 

@@ -61,7 +61,7 @@ class Stepper():
         if self.clip:   # Gradient clipping
             if IS_TORCH_04: nn.utils.clip_grad_norm_(trainable_params_(self.m), self.clip)
             else: nn.utils.clip_grad_norm(trainable_params_(self.m), self.clip)
-        if 'wd' in self.opt.param_groups and self.opt.param_groups['wd'] != 0: 
+        if 'wd' in self.opt.param_groups[0] and self.opt.param_groups[0]['wd'] != 0: 
             #Weight decay out of the loss. After the gradient computation but before the step.
             for group in self.opt.param_groups:
                 lr, wd = group['lr'], group['wd']
@@ -131,7 +131,7 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
         if hasattr(cur_data, 'trn_sampler'): cur_data.trn_sampler.set_epoch(epoch)
         if hasattr(cur_data, 'val_sampler'): cur_data.val_sampler.set_epoch(epoch)
         num_batch = len(cur_data.trn_dl)
-        t = tqdm(iter(cur_data.trn_dl), leave=False, total=num_batch)
+        t = tqdm(iter(cur_data.trn_dl), leave=False, total=num_batch, miniters=0)
         if all_val: val_iter = IterBatch(cur_data.val_dl)
 
         for (*x,y) in t:
@@ -140,7 +140,7 @@ def fit(model, data, n_epochs, opt, crit, metrics=None, callbacks=None, stepper=
             loss = model_stepper.step(V(x),V(y), epoch)
             avg_loss = avg_loss * avg_mom + loss * (1-avg_mom)
             debias_loss = avg_loss / (1 - avg_mom**batch_num)
-            t.set_postfix(loss=debias_loss)
+            t.set_postfix(loss=debias_loss, refresh=False)
             stop=False
             los = debias_loss if not all_val else [debias_loss] + validate_next(model_stepper,metrics, val_iter)
             for cb in callbacks: stop = stop or cb.on_batch_end(los)
@@ -220,10 +220,11 @@ def validate(stepper, dl, metrics, seq_first=False):
     stepper.reset(False)
     with no_grad_context():
         for (*x,y) in iter(dl):
-            preds, l = stepper.evaluate(VV(x), VV(y))
+            y = VV(y)
+            preds, l = stepper.evaluate(VV(x), y)
             batch_cnts.append(batch_sz(x, seq_first=seq_first))
             loss.append(to_np(l))
-            res.append([f(preds.data, y) for f in metrics])
+            res.append([f(preds.data, y.data) for f in metrics])
     return [np.average(loss, 0, weights=batch_cnts)] + list(np.average(np.stack(res), 0, weights=batch_cnts))
 
 def get_prediction(x):
