@@ -45,5 +45,5 @@ ENV PATH /opt/conda/bin:$PATH
 RUN conda install pytorch torchvision cuda91 -c pytorch
 RUN conda install -y jupyter opencv bcolz tqdm matplotlib scipy seaborn graphviz python-graphviz
 RUN conda install -c conda-forge jupyter_contrib_nbextensions
-RUN pip install sklearn-pandas isoweek pandas-summary tocd rchtext
+RUN pip install sklearn-pandas isoweek pandas-summary torchtext
 
