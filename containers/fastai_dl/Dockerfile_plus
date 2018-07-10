@@ -51,4 +51,5 @@ RUN mkdir git
 WORKDIR git
 RUN git clone https://github.com/MichoelSnow/data_science.git
 RUN ln -s ~/git/data_science/src/data_sci/ /opt/conda/lib/python3.6/site-packages/
+RUN ln -s ~/git/data_science/src/data_sci/fastai /opt/conda/lib/python3.6/site-packages/
 WORKDIR /home/msnow
