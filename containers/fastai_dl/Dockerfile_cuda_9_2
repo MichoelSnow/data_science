@@ -1,0 +1,50 @@
+FROM nvidia/cuda:9.2-cudnn7-devel-ubuntu16.04
+
+# Built off the paperspace fastai docker
+LABEL com.nvidia.volumes.needed="nvidia_driver"
+LABEL maintainer="michoel snow"
+
+RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recommends \
+         build-essential \
+         ca-certificates \
+         cmake \
+         curl \
+         git \
+         libjpeg-dev \
+         libpng-dev \
+         libnccl2\
+         libnccl-dev \
+         python-qt4 \
+         sudo \
+         unzip \
+         vim \
+         wget \
+         p7zip-full \
+          zip &&\
+     rm -rf /var/lib/apt/lists/*
+
+
+RUN useradd -ms /bin/bash msnow
+RUN usermod -aG sudo msnow
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+WORKDIR /opt
+RUN chown msnow /opt
+USER msnow
+WORKDIR /home/msnow
+
+ENV PYTHON_VERSION=3.6
+RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+     chmod +x ~/miniconda.sh && \
+     ~/miniconda.sh -b -p /opt/conda && \
+     rm ~/miniconda.sh && \
+    /opt/conda/bin/conda install conda-build
+RUN /opt/conda/bin/conda clean -ya
+
+ENV PATH /opt/conda/bin:$PATH
+RUN conda install pytorch torchvision cuda91 -c pytorch
+RUN conda install -y jupyter opencv bcolz tqdm matplotlib scipy seaborn graphviz python-graphviz
+RUN conda install -c conda-forge jupyter_contrib_nbextensions
+RUN pip install sklearn-pandas isoweek pandas-summary torchtext
+

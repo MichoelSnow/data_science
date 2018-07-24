@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.2-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04
 
 # Built off the paperspace fastai docker
 LABEL com.nvidia.volumes.needed="nvidia_driver"
@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
          unzip \
          vim \
          wget \
+         p7zip-full \
           zip &&\
      rm -rf /var/lib/apt/lists/*
 
