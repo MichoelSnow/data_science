@@ -1,0 +1,73 @@
+\documentclass[12pt]{article}
+
+\pagestyle{empty}
+\linespread{1.5}
+%\usepackage[cm]{fullpage}
+\usepackage[paperwidth=200mm,paperheight=350mm,margin=10mm]{geometry}
+%\special{papersize=2000mm,2000mm}
+\usepackage{color}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{stackrel}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\definecolor{green}{RGB}{57,181,74}
+\definecolor{orange}{RGB}{247,148,29}
+\definecolor{pink}{RGB}{236,0,140}
+\definecolor{blue}{RGB}{0,0,255}
+\begin{document}
+
+
+$ \\
+\color{green}{W_{:,1}}^T \quad {W_{k,1}}^T \quad {W^{\prime}_{:,1}}^T\\
+\color{orange}{W_{:,2}}^T \quad  {W_{k,2}}^T \quad {W^{\prime}_{:,\frac{V}{2}}}^T\\
+\color{pink}{W_{:,3}}^T \quad  {W_{k,3}}^T \quad {W^{\prime}_{:,V}}^T\normalcolor\\
+W^T \quad  {W_{1,:}}^T \quad  {W_{k,:}}^T \quad  {W_{V,:}}^T \quad {W_{2,:}}^T \quad {W_{V-1,:}}^T 
+\quad {{W^{\prime}}_{1,:}}^T \quad {{W^{\prime}}_{2,:}}^T \quad {{W^{\prime}}_{3,:}}^T\\
+\color{green} {W_{1,1}}^T \normalcolor 0  + \ldots + 
+\color{green} {W_{k,1}}^T \normalcolor 1  + \ldots +
+\color{green} {W_{V,1}}^T \normalcolor 0\\
+\color{orange} {W_{1,2}}^T \normalcolor 0  + \ldots + 
+\color{orange} {W_{k,2}}^T \normalcolor 1  + \ldots +
+\color{orange} {W_{V,2}}^T \normalcolor 0\\
+\color{pink} {W_{1,3}}^T \normalcolor 0  + \ldots + 
+\color{pink} {W_{k,3}}^T \normalcolor 1  + \ldots +
+\color{pink} {W_{V,3}}^T \normalcolor 0\\
+x^1  \;\; x^1_1 \;\; x^i_1 \;\; x^C_1 \\
+x^i  \;\; x^1_k \;\; x^i_k \;\; x^C_k \\
+x^C  \;\; x^1_V \;\; x^i_V \;\; x^C_V \\
+\dfrac{1}{C}\\
+\dfrac{1}{C} \sum\limits_{i=1}^C x^i\\
+\dfrac{1}{C}\sum\limits_{i=1}^C x^i_1\\
+\dfrac{1}{C}\sum\limits_{i=1}^C x^i_k\\
+\dfrac{1}{C}\sum\limits_{i=1}^C x^i_V\\
+\color{green} {W_{1,1}}^T \normalcolor \left(x^1_1 + \ldots + x^C_1  \right )  + \ldots + 
+\color{green} {W_{k,1}}^T \normalcolor \left(x^1_k + \ldots + x^C_k  \right )  + \ldots +
+\color{green} {W_{V,1}}^T \normalcolor \left(x^1_V + \ldots + x^C_V  \right )\\
+\color{orange} {W_{1,2}}^T \normalcolor \left(x^1_1 + \ldots + x^C_1  \right )  + \ldots + 
+\color{orange} {W_{k,2}}^T \normalcolor \left(x^1_k + \ldots + x^C_k  \right )  + \ldots +
+\color{orange} {W_{V,2}}^T \normalcolor \left(x^1_V + \ldots + x^C_V  \right )\\
+\color{pink} {W_{1,3}}^T \normalcolor \left(x^1_1 + \ldots + x^C_1  \right )  + \ldots + 
+\color{pink} {W_{k,3}}^T \normalcolor \left(x^1_k + \ldots + x^C_k  \right )  + \ldots +
+\color{pink} {W_{V,3}}^T \normalcolor \left(x^1_V + \ldots + x^C_V  \right )\\
+\color{green} {W^1_{k,1}}^T \normalcolor x^1_{k}  + 
+\color{green} {W^2_{k,1}}^T \normalcolor x^2_{k}  + \ldots +
+\color{green} {W^C_{k,1}}^T \normalcolor x^C_{k} \\
+\color{orange} {W^1_{k,2}}^T \normalcolor x^1_{k}  + 
+\color{orange} {W^2_{k,2}}^T \normalcolor x^2_{k}  + \ldots +
+\color{orange} {W^C_{k,2}}^T \normalcolor x^C_{k} \\
+\color{pink} {W^1_{k,3}}^T \normalcolor x^1_{k}  + 
+\color{pink} {W^2_{k,3}}^T \normalcolor x^2_{k}  + \ldots +
+\color{pink} {W^C_{k,3}}^T \normalcolor x^C_{k} \\
+\normalcolor\dfrac{1}{C}\sum\limits_{i=1}^C \color{green} {W^i_{k,1}}^T  \\
+\normalcolor\dfrac{1}{C}\sum\limits_{i=1}^C \color{orange} {W^i_{k,2}}^T  \\
+\normalcolor\dfrac{1}{C}\sum\limits_{i=1}^C \color{pink} {W^i_{k,3}}^T \\
+\normalcolor W^T\\
+$
+%\[ \sum\limits_{i=1}^C x_i \]
+%$\sum \\
+%test$
+%\[ \sum\limits_{i=1}^C x_{i_1} \]
+%
+%\[ \sum\]
+
+\end{document}
