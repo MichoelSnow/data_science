@@ -1,0 +1,14 @@
+|---------------+-------------------------------------------------------------------------------------------------|
+| shortcut      | Action                                                                                          |
+|---------------+-------------------------------------------------------------------------------------------------|
+| Ctrl-A        | Go to the beginning of the line                                                                 |
+| Ctrl-E        | Go to the end of the line                                                                       |
+| Alt-B         | Jump back one word using a non-alphanumeric character as delimiter                              |
+| Alt-F         | Jump forward one word using a non-alphanumeric character as delimiter                           |
+| Ctrl-W        | Cut one word backwards using white space as delimiter                                           |
+| Alt-Backspace | Cut one word backwards using a non-alphanumeric character as delimiter                          |
+| Ctrl-K        | Cut everything forward to end of line                                                           |
+| Ctrl-U        | Cut everything backwards to beginning of line                                                   |
+| Ctrl-Y        | Paste whatever was cut by the last cut command                                                  |
+| Alt-R         | Revert all changes to current line. Very useful if you accidentally modify a command in history |
+
