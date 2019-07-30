@@ -224,7 +224,7 @@ A digest takes the place of the tag when pulling an image.
 
 ### Signing up for a free account
 
-If you ahve never used Google Cloud Platform before then you are probably eligibile for a [free trial](https://console.cloud.google.com/freetrial?authuser=2&page=0) which gives you access to all the services and $300 in credit to spend over the next 12 months.   You will still need to enter your credit card info, but you won't be charged until you go over the $300 credit limit.
+If you have never used Google Cloud Platform before then you are probably eligibile for a [free trial](https://console.cloud.google.com/freetrial?authuser=2&page=0) which gives you access to all the services and $300 in credit to spend over the next 12 months.   You will still need to enter your credit card info, but you won't be charged until you go over the $300 credit limit.
 
 ### Setting your default region
 
@@ -475,6 +475,25 @@ Follow the step in the CUDA toolkit documentation for the installation appropria
   - `sudo apt-get install cuda`
 - Reboot the system to load the NVIDIA drivers.
   - `sudo reboot`
+
+#### Uninstall
+
+To uninstall the cuda toolkit and driver you need to do one of two things, depending on how you installed it.
+
+- Runfile installation
+  - `sudo /usr/local/cuda-X.Y/bin/uninstall_cuda_X.Y.pl`
+  - `sudo /usr/bin/nvidia-uninstall`
+-  RPM/Deb installation
+  - Ubuntu
+    - sudo apt-get --purge remove <package_name>
+    - use `apt list --installed` to get a list of all installed pacakges
+  - Redhat/CentOS
+    - sudo yum remove <package_name>
+  - Fedora
+    - sudo dnf remove <package_name>
+  - OpenSUSE/SLES
+    - sudo zypper remove <package_name>
+
 
 ### Post-installation Actions
 
