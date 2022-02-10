@@ -115,7 +115,7 @@ SQLAlchemy==1.3.10
 statsmodels==0.9.0
 -e git+git@github.com:MichoelSnow/interviewing.git@52034ef34a4cbff7988dabcdaafd75d4969b548c#egg=takehome
 tensorboard==2.1.1
-tensorflow==2.1.2
+tensorflow==2.5.3
 tensorflow-estimator==2.1.0
 termcolor==1.1.0
 terminado==0.8.1
