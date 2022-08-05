@@ -85,7 +85,7 @@ prompt-toolkit==2.0.8
 protobuf==3.11.3
 protobuf3-to-dict==0.1.5
 ptyprocess==0.6.0
-pyarrow==0.14.1
+pyarrow==0.15.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.19
